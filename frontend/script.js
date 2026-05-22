@@ -103,8 +103,8 @@ async function handleFormSubmit(e) {
     openModal('modalLoading');
     
     try {
-        // Substitua essa URL pela URL do Webhook do seu N8N
-        const webhookUrl = 'http://localhost:5678/webhook-test/buscar-boletos';
+        // Rota oficial do N8N na nuvem
+        const webhookUrl = 'https://n8n.amais.io/webhook/buscar-boletos';
         
         const response = await fetch(webhookUrl, {
             method: 'POST',
