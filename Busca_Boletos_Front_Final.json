@@ -192,27 +192,13 @@
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
+          "string": [
             {
-              "id": "cond-1",
-              "leftValue": "={{ $json.error }}",
-              "rightValue": "true",
-              "operator": {
-                "type": "boolean",
-                "operation": "notEquals",
-                "name": "filter.operator.notEquals"
-              }
+              "value1": "={{ $json.escola_id }}",
+              "operation": "isNotEmpty"
             }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
+          ]
+        }
       },
       "id": "achou-alunos",
       "name": "Encontrou Alunos?",
