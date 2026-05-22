@@ -98,7 +98,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"status\": \"erro\",\n  \"message\": \"CPF inválido fornecido.\"\n}",
+        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"CPF inválido fornecido.\" } }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -230,7 +230,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"status\": \"erro\",\n  \"message\": \"Não encontramos nenhum aluno com esse CPF em nenhuma das nossas escolas.\"\n}",
+        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"Não encontramos nenhum aluno com esse CPF em nenhuma das nossas escolas.\" } }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -251,7 +251,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}",
+        "responseBody": "={{ $json }}",
         "options": {
           "responseHeaders": {
             "entries": [
