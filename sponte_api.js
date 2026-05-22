@@ -16,16 +16,16 @@ app.get('/extrair-boleto', async (req, res) => {
         });
         const page = await browser.newPage();
         
-        await page.goto(`https://portal.sponteweb.com.br/SelecionaLogin.aspx?cid=${cid}`, { waitUntil: 'networkidle2' });
+        await page.goto(`https://portal.sponteweb.com.br/SelecionaLogin.aspx?cid=${cid}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
         await page.type('#txtLogin', login);
         await page.type('#txtSenha', senha);
         
         await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle2' }),
+            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 }),
             page.click('#btnOk')
         ]);
         
-        await page.goto('https://portal.sponteweb.com.br/Financeiro.aspx', { waitUntil: 'networkidle2' });
+        await page.goto('https://portal.sponteweb.com.br/Financeiro.aspx', { waitUntil: 'domcontentloaded', timeout: 60000 });
         
         // Espera a tabela carregar e clica na primeira linha
         await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick]', { timeout: 10000 }).catch(()=>{});
