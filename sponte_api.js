@@ -11,7 +11,8 @@ app.get('/extrair-boleto', async (req, res) => {
     let browser;
     try {
         browser = await puppeteer.launch({ 
-            headless: true, // Obrigatório true na VPS (Linux sem interface gráfica)
+            headless: true, // Obrigatório true na VPS/Render (Linux sem interface gráfica)
+            defaultViewport: null,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-popup-blocking']
         });
         const page = await browser.newPage();
@@ -24,6 +25,22 @@ app.get('/extrair-boleto', async (req, res) => {
             page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 }),
             page.click('#btnOk')
         ]);
+        
+        // Anti-travamento: Caso seja o primeiro login e peça para alterar a senha, clica em "Ignorar"
+        const clicouIgnorar = await page.evaluate(() => {
+            const ignorarBtn = Array.from(document.querySelectorAll('a, button, input[type="button"], input[type="submit"]'))
+                .find(el => (el.innerText && el.innerText.toLowerCase().includes('ignorar')) || (el.value && el.value.toLowerCase().includes('ignorar')));
+            if (ignorarBtn) {
+                ignorarBtn.click();
+                return true;
+            }
+            return false;
+        }).catch(() => false);
+        
+        if (clicouIgnorar) {
+            // Se clicou em ignorar, aguarda a página recarregar antes de ir pro financeiro
+            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        }
         
         await page.goto('https://portal.sponteweb.com.br/Financeiro.aspx', { waitUntil: 'domcontentloaded', timeout: 60000 });
         
