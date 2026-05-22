@@ -128,9 +128,12 @@ async function handleFormSubmit(e) {
 let currentProximoBoleto = null;
 
 function handleRobotResponse(data) {
-    // data = { status: 'negociar' | 'pagar_atrasados' | 'em_dia', parcelas: [...], proximoBoleto: {...} }
+    // data = { status: 'negociar' | 'pagar_atrasados' | 'em_dia' | 'erro', parcelas: [...], proximoBoleto: {...}, message: "..." }
     
-    if (data.status === 'negociar') {
+    if (data.status === 'erro') {
+        alert(data.message || 'Erro ao buscar os dados.');
+    }
+    else if (data.status === 'negociar') {
         openModal('modalNegociar');
     } 
     else if (data.status === 'em_dia') {
