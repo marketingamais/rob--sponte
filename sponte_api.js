@@ -21,27 +21,21 @@ app.get('/extrair-boleto', async (req, res) => {
         await page.type('#txtLogin', login);
         await page.type('#txtSenha', senha);
         
-        await Promise.all([
-            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 }),
-            page.click('#btnOk')
-        ]);
+        await page.click('#btnOk');
         
-        // Anti-travamento: Caso seja o primeiro login e peça para alterar a senha, clica em "Ignorar"
-        const clicouIgnorar = await page.evaluate(() => {
-            const ignorarBtn = Array.from(document.querySelectorAll('a, button, input[type="button"], input[type="submit"]'))
-                .find(el => (el.innerText && el.innerText.toLowerCase().includes('ignorar')) || (el.value && el.value.toLowerCase().includes('ignorar')));
-            if (ignorarBtn) {
-                ignorarBtn.click();
-                return true;
-            }
-            return false;
-        }).catch(() => false);
-        
-        if (clicouIgnorar) {
-            // Se clicou em ignorar, aguarda a página recarregar antes de ir pro financeiro
-            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        // Aguarda até 10s para a Sponte responder: pode ser redirecionamento ou o Modal de Troca de Senha (highslide)
+        try {
+            await page.waitForFunction(() => {
+                return document.querySelector('.highslide-container') !== null || 
+                       window.location.href.toLowerCase().includes('financeiro') || 
+                       window.location.href.toLowerCase().includes('default') ||
+                       (document.querySelector('#lblMsg') && document.querySelector('#lblMsg').innerText.length > 0);
+            }, { timeout: 10000 });
+        } catch (e) {
+            // Timeout: ignoramos e forçamos a ida pro Financeiro
         }
         
+        // Força a ida pro financeiro, não importa se abriu modal de senha ou não
         await page.goto('https://portal.sponteweb.com.br/Financeiro.aspx', { waitUntil: 'domcontentloaded', timeout: 60000 });
         
         // Espera a tabela carregar e clica na primeira linha
