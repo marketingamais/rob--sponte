@@ -6,7 +6,10 @@
         "httpMethod": "POST",
         "path": "buscar-boletos",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "rawBody": false,
+          "optionsRespond": true
+        }
       },
       "id": "webhook-trigger",
       "name": "Webhook POST Frontend",
@@ -17,6 +20,47 @@
         200
       ],
       "webhookId": "buscar-boletos"
+    },
+    {
+      "parameters": {
+        "httpMethod": "OPTIONS",
+        "path": "buscar-boletos",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-options",
+      "name": "Webhook OPTIONS (CORS)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "buscar-boletos"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "",
+        "options": {
+          "responseCode": 204,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
+              { "name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" }
+            ]
+          }
+        }
+      },
+      "id": "resposta-cors",
+      "name": "Resposta CORS",
+      "type": "n8n-nodes-base.webhookResponse",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ]
     },
     {
       "parameters": {
@@ -55,7 +99,13 @@
       "parameters": {
         "respondWith": "json",
         "responseBody": "{\n  \"status\": \"erro\",\n  \"message\": \"CPF inválido fornecido.\"\n}",
-        "options": {}
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
       },
       "id": "resposta-cpf-invalido",
       "name": "Retornar Erro CPF",
@@ -195,7 +245,13 @@
       "parameters": {
         "respondWith": "json",
         "responseBody": "{\n  \"status\": \"erro\",\n  \"message\": \"Não encontramos nenhum aluno com esse CPF em nenhuma das nossas escolas.\"\n}",
-        "options": {}
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
       },
       "id": "resposta-nao-encontrado",
       "name": "Não Encontrado Response",
@@ -210,7 +266,13 @@
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
-        "options": {}
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
       },
       "id": "resposta-boletos",
       "name": "Retornar Boletos Front",
