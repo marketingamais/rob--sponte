@@ -49,8 +49,19 @@ app.get('/extrair-boleto', async (req, res) => {
             }
         } catch(e) {}
         
-        // Força a ida pro financeiro, não importa se abriu modal de senha ou não
-        await page.goto('https://portal.sponteweb.com.br/Financeiro.aspx', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        // Força a ida pro financeiro apenas se ainda não estiver indo
+        try {
+            if (!page.url().toLowerCase().includes('financeiro')) {
+                await page.goto('https://portal.sponteweb.com.br/Financeiro.aspx', { waitUntil: 'domcontentloaded', timeout: 60000 });
+            }
+        } catch (e) {
+            // Se der net::ERR_ABORTED, significa que o clique no "Ignorar" já disparou a navegação!
+        }
+        
+        // Aguarda ter certeza que chegou na tela do financeiro
+        try {
+            await page.waitForFunction(() => window.location.href.toLowerCase().includes('financeiro'), { timeout: 15000 });
+        } catch(e) {}
         
         // Espera a tabela carregar e clica na primeira linha
         await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick]', { timeout: 10000 }).catch(()=>{});
