@@ -63,64 +63,103 @@ app.get('/extrair-boleto', async (req, res) => {
             await page.waitForFunction(() => window.location.href.toLowerCase().includes('financeiro'), { timeout: 15000 });
         } catch(e) {}
         
-        // Espera a tabela carregar e clica na primeira linha
-        await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick]', { timeout: 10000 }).catch(()=>{});
+        // Espera a tabela carregar ou não (se não tiver parcelas)
+        const temTabela = await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick]', { timeout: 10000 })
+            .then(() => true).catch(() => false);
         
-        // Clica na linha da tabela
-        const selecionou = await page.evaluate(() => {
-            const row = document.querySelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick], #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even[onclick]');
-            if (row) {
-                row.click();
-                return true;
-            }
-            return false;
+        if (!temTabela) {
+            await browser.close();
+            return res.json({ status: 'em_dia', message: 'Nenhuma parcela pendente encontrada.' });
+        }
+        
+        // Extrai todas as parcelas da tabela
+        const parcelas = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick], #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even[onclick]'));
+            return rows.map((row, index) => {
+                const img = row.querySelector('img[id*="imgSituacao"]');
+                const title = img ? img.getAttribute('title') : '';
+                const numParcela = row.querySelector('td:nth-child(2)') ? row.querySelector('td:nth-child(2)').innerText.trim() : '';
+                const dataVencimento = row.querySelector('td:nth-child(3)') ? row.querySelector('td:nth-child(3)').innerText.trim() : '';
+                const valor = row.querySelector('td:nth-child(4)') ? row.querySelector('td:nth-child(4)').innerText.trim() : '';
+                
+                let diasAtraso = 0;
+                let isVencida = false;
+                if (title && title.toLowerCase().includes('vencida a')) {
+                    isVencida = true;
+                    const match = title.match(/\d+/);
+                    if (match) diasAtraso = parseInt(match[0], 10);
+                }
+                
+                return { index, numParcela, dataVencimento, valor, title, isVencida, diasAtraso };
+            });
         });
 
-        if (!selecionou) {
+        if (parcelas.length === 0) {
             await browser.close();
-            return res.json({ error: 'Nenhuma parcela pendente encontrada.' });
-        }
-        
-        // Espera o clique processar no Sponte
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Clica em Imprimir
-        await page.click('#ctl00_ContentPlaceHolder1_btnImprimirBoleto');
-
-        // Loop para esperar a nova aba do Boleto.aspx carregar completamente
-        let boletoPage = null;
-        for (let i = 0; i < 20; i++) {
-            await new Promise(r => setTimeout(r, 1000)); // Espera 1 seg
-            const pagesAgora = await browser.pages();
-            // Procura alguma aba que tenha Boleto.aspx na URL
-            boletoPage = pagesAgora.find(p => p.url().toLowerCase().includes('boleto.aspx'));
-            if (boletoPage) break;
+            return res.json({ status: 'em_dia', message: 'Nenhuma parcela pendente encontrada.' });
         }
 
-        if (!boletoPage) {
+        const atrasadas = parcelas.filter(p => p.isVencida);
+        const maxAtraso = atrasadas.length > 0 ? Math.max(...atrasadas.map(p => p.diasAtraso)) : 0;
+
+        // Regra 1: Mais de 5 dias de atraso (Negociar)
+        if (maxAtraso > 5) {
             await browser.close();
-            return res.json({ error: 'Timeout: O Sponte não gerou a aba do Boleto.aspx a tempo.' });
+            return res.json({ status: 'negociar', maxAtraso, parcelasAtrasadas: atrasadas.length });
         }
 
-        // Aguarda carregar o boleto
-        await boletoPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
-        
-        const url = boletoPage.url();
-        const texto = await boletoPage.evaluate(() => document.body.innerText);
-        
-        // Expressão regular avançada para achar a linha digitável com pontos e espaços (inclusive non-breaking spaces)
-        // Formato padrão: 00000.00000 00000.000000 00000.000000 0 00000000000000
-        const regexLinha = /\d{5}\.?\d{5}\s*\d{5}\.?\d{6}\s*\d{5}\.?\d{6}\s*\d\s*\d{14}/;
-        const match = texto.match(regexLinha);
-        
-        let linhaDigitavel = 'Linha digitável não encontrada no boleto.';
-        if (match) {
-            // Se encontrou, limpa os espaços e pontos para retornar só os 47 números limpos!
-            linhaDigitavel = match[0].replace(/\D/g, '');
+        // Função auxiliar para extrair linha digitável de um índice específico da tabela
+        const extrairLinhaDigitavel = async (rowIndex) => {
+            await page.evaluate((idx) => {
+                const rows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick], #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even[onclick]'));
+                if (rows[idx]) rows[idx].click();
+            }, rowIndex);
+            
+            await new Promise(r => setTimeout(r, 1000));
+            await page.click('#ctl00_ContentPlaceHolder1_btnImprimirBoleto');
+            
+            let boletoPage = null;
+            for (let i = 0; i < 20; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                const pagesAgora = await browser.pages();
+                boletoPage = pagesAgora.find(p => p.url().toLowerCase().includes('boleto.aspx'));
+                if (boletoPage) break;
+            }
+            
+            if (!boletoPage) return null;
+            
+            await boletoPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
+            const texto = await boletoPage.evaluate(() => document.body.innerText);
+            
+            const regexLinha = /\d{5}\.?\d{5}\s*\d{5}\.?\d{6}\s*\d{5}\.?\d{6}\s*\d\s*\d{14}/;
+            const match = texto.match(regexLinha);
+            let linha = null;
+            if (match) {
+                linha = match[0].replace(/\D/g, '');
+            }
+            
+            await boletoPage.close(); // Fecha a aba do boleto
+            await new Promise(r => setTimeout(r, 500)); // Pequena pausa
+            return linha;
+        };
+
+        // Regra 2: Atraso de 1 a 5 dias (Pagar atrasados)
+        if (atrasadas.length > 0) {
+            let resultados = [];
+            for (let p of atrasadas) {
+                const linha = await extrairLinhaDigitavel(p.index);
+                resultados.push({ ...p, linhaDigitavel: linha });
+            }
+            await browser.close();
+            return res.json({ status: 'pagar_atrasados', parcelas: resultados });
         }
-        
+
+        // Regra 3: Nenhuma atrasada (Em dia)
+        // Extrai a primeira parcela (próxima a vencer)
+        const proxima = parcelas[0];
+        const linhaProxima = await extrairLinhaDigitavel(proxima.index);
         await browser.close();
-        res.json({ linkBoleto: url, linhaDigitavel, extraidoComSucesso: !!match });
+        return res.json({ status: 'em_dia', proximoBoleto: { ...proxima, linhaDigitavel: linhaProxima } });
 
     } catch (e) {
         if (browser) await browser.close();
