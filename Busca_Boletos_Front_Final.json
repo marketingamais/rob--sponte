@@ -64,7 +64,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.item.json.body || {};\nconst cpf = (body.cpf || '').toString().replace(/\\D/g, '');\nif (cpf.length !== 11) {\n    return [{ json: { error: true, message: 'CPF inválido' } }];\n}\nlet formattedCpf = cpf.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, \"$1.$2.$3-$4\");\nreturn [{ json: { cpf: formattedCpf, error: false } }];"
+        "jsCode": "const body = $json.body || {};\nconst cpf = (body.cpf || '').toString().replace(/\\D/g, '');\nif (cpf.length !== 11) {\n    return [{ json: { error: true, message: 'CPF inválido' } }];\n}\nlet formattedCpf = cpf.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, \"$1.$2.$3-$4\");\nreturn [{ json: { cpf: formattedCpf, error: false } }];"
       },
       "id": "validar-cpf",
       "name": "Validar CPF",
