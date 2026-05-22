@@ -32,8 +32,22 @@ app.get('/extrair-boleto', async (req, res) => {
                        (document.querySelector('#lblMsg') && document.querySelector('#lblMsg').innerText.length > 0);
             }, { timeout: 10000 });
         } catch (e) {
-            // Timeout: ignoramos e forçamos a ida pro Financeiro
+            // Timeout: ignoramos e prosseguimos
         }
+        
+        // Anti-travamento DEFINITIVO: O botão Ignorar fica dentro de um iframe!
+        try {
+            await new Promise(r => setTimeout(r, 2000)); // Aguarda o iframe carregar
+            let modalFrame = page.frames().find(f => f.url().includes('RecuperarSenha.aspx'));
+            if (modalFrame) {
+                await modalFrame.evaluate(() => {
+                    const btn = Array.from(document.querySelectorAll('a, button, input'))
+                        .find(el => (el.innerText && el.innerText.toLowerCase().includes('ignorar')) || (el.value && el.value.toLowerCase().includes('ignorar')));
+                    if (btn) btn.click();
+                }).catch(() => {});
+                await new Promise(r => setTimeout(r, 2000)); // Aguarda processar o clique
+            }
+        } catch(e) {}
         
         // Força a ida pro financeiro, não importa se abriu modal de senha ou não
         await page.goto('https://portal.sponteweb.com.br/Financeiro.aspx', { waitUntil: 'domcontentloaded', timeout: 60000 });
