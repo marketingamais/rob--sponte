@@ -7,10 +7,20 @@
         "path": "buscar-boletos-novo",
         "responseMode": "lastNode",
         "options": {
-          "rawBody": false,
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
             ]
           }
         }
@@ -19,7 +29,10 @@
       "name": "Webhook POST Frontend",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [ 0, 200 ],
+      "position": [
+        0,
+        200
+      ],
       "webhookId": "buscar-boletos"
     },
     {
@@ -27,13 +40,21 @@
         "httpMethod": "OPTIONS",
         "path": "buscar-boletos-novo",
         "responseMode": "onReceived",
-        "responseCode": 204,
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "*" },
-              { "name": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
-              { "name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" }
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
             ]
           }
         }
@@ -42,7 +63,10 @@
       "name": "Webhook OPTIONS CORS",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [ 0, 0 ],
+      "position": [
+        0,
+        0
+      ],
       "webhookId": "buscar-boletos-options"
     },
     {
@@ -53,7 +77,10 @@
       "name": "Validar CPF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [ 200, 200 ]
+      "position": [
+        200,
+        200
+      ]
     },
     {
       "parameters": {
@@ -71,7 +98,10 @@
       "name": "CPF Invalido",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [ 400, 200 ]
+      "position": [
+        400,
+        200
+      ]
     },
     {
       "parameters": {
@@ -81,7 +111,10 @@
       "name": "Retornar Erro CPF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [ 400, 0 ]
+      "position": [
+        400,
+        0
+      ]
     },
     {
       "parameters": {
@@ -90,8 +123,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "api_key", "value": "87E821" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "api_key",
+              "value": "87E821"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {
@@ -102,7 +141,10 @@
       "name": "Buscar Alunos 8731",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [ 600, 200 ]
+      "position": [
+        600,
+        200
+      ]
     },
     {
       "parameters": {
@@ -111,8 +153,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "api_key", "value": "0EA64A" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "api_key",
+              "value": "0EA64A"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {
@@ -123,7 +171,10 @@
       "name": "Buscar Alunos 70532",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [ 800, 200 ]
+      "position": [
+        800,
+        200
+      ]
     },
     {
       "parameters": {
@@ -133,7 +184,10 @@
       "name": "Agrupar Alunos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [ 1000, 200 ]
+      "position": [
+        1000,
+        200
+      ]
     },
     {
       "parameters": {
@@ -151,7 +205,10 @@
       "name": "Nao Encontrou Alunos",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [ 1200, 200 ]
+      "position": [
+        1200,
+        200
+      ]
     },
     {
       "parameters": {
@@ -166,7 +223,10 @@
       "name": "Chamar Robo Puppeteer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [ 1400, 100 ]
+      "position": [
+        1400,
+        100
+      ]
     },
     {
       "parameters": {
@@ -176,7 +236,23 @@
       "name": "Nao Encontrado Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [ 1400, 300 ]
+      "position": [
+        1400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { } }];"
+      },
+      "id": "resposta-cors",
+      "name": "Resposta CORS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ]
     }
   ],
   "connections": {
@@ -265,6 +341,17 @@
         [
           {
             "node": "Chamar Robo Puppeteer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook OPTIONS CORS": {
+      "main": [
+        [
+          {
+            "node": "Resposta CORS",
             "type": "main",
             "index": 0
           }
