@@ -6,7 +6,9 @@ const port = process.env.PORT || 3000;
 
 app.get('/extrair-boleto', async (req, res) => {
     const { cid, login, senha } = req.query;
-    if (!cid || !login || !senha) return res.status(400).json({ error: 'Faltam parametros' });
+    if (!cid || !login || !senha) {
+        return res.status(200).json({ status: 'erro', message: 'Este aluno não possui senha cadastrada no Portal da Sponte para que possamos consultar os boletos.' });
+    }
 
     let browser;
     try {
