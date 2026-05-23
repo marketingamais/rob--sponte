@@ -143,7 +143,11 @@ function handleRobotResponse(data) {
         if (currentProximoBoleto && currentProximoBoleto.linhaDigitavel) {
             btnProximo.style.display = 'flex';
             btnProximo.onclick = () => {
-                showLinhaDigitavel(currentProximoBoleto.linhaDigitavel);
+                showLinhaDigitavel(
+                    currentProximoBoleto.linhaDigitavel, 
+                    currentProximoBoleto.numParcela, 
+                    currentProximoBoleto.dataVencimento
+                );
             };
         } else {
             btnProximo.style.display = 'none'; // Se não tiver próximos boletos
@@ -170,7 +174,7 @@ function renderBoletosList(parcelas) {
                 <h4>Parcela ${p.numParcela}</h4>
                 <p>Venceu em: ${p.dataVencimento}</p>
             </div>
-            <button class="btn-primary pill-shape" style="padding: 0.75rem 1.5rem; font-size: 0.875rem;" onclick="showLinhaDigitavel('${p.linhaDigitavel}')">
+            <button class="btn-primary pill-shape" style="padding: 0.75rem 1.5rem; font-size: 0.875rem;" onclick="showLinhaDigitavel('${p.linhaDigitavel}', '${p.numParcela}', '${p.dataVencimento}')">
                 Pagar
             </button>
         `;
@@ -199,9 +203,19 @@ function closeBoletosScreen() {
     document.getElementById('telaBoletos').classList.add('hidden');
 }
 
-function showLinhaDigitavel(linha) {
+function showLinhaDigitavel(linha, numParcela = null, dataVencimento = null) {
     document.getElementById('linhaTexto').innerText = linha;
     document.getElementById('copyFeedback').classList.add('hidden');
+    
+    const infoDiv = document.getElementById('infoProximoBoleto');
+    if (numParcela && dataVencimento) {
+        document.getElementById('numParcelaProximo').innerText = numParcela;
+        document.getElementById('dataVencimentoProximo').innerText = dataVencimento;
+        infoDiv.classList.remove('hidden');
+    } else {
+        infoDiv.classList.add('hidden');
+    }
+    
     openModal('modalLinhaDigitavel');
 }
 

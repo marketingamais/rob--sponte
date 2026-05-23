@@ -120,7 +120,13 @@
                 <i class="ph ph-x"></i>
             </button>
             
-            <h3 class="mb-4">Copie a linha digitável</h3>
+            <h3 class="mb-2">Próximo Boleto</h3>
+            <div id="infoProximoBoleto" class="mb-4 text-sm text-gray-600 hidden">
+                <p><strong>Parcela:</strong> <span id="numParcelaProximo"></span></p>
+                <p><strong>Vencimento:</strong> <span id="dataVencimentoProximo"></span></p>
+            </div>
+            
+            <h4 class="mb-2 text-sm font-semibold">Linha digitável:</h4>
             <div class="linha-digitavel-box">
                 <span id="linhaTexto">00000.00000 00000.000000 00000.000000 0 00000000000000</span>
                 <button id="btnCopiarLinha" class="btn-icon" title="Copiar">
