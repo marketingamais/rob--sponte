@@ -15,10 +15,7 @@
       "name": "Webhook POST Frontend",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        0,
-        200
-      ],
+      "position": [ 0, 200 ],
       "webhookId": "buscar-boletos"
     },
     {
@@ -29,13 +26,10 @@
         "options": {}
       },
       "id": "webhook-options",
-      "name": "Webhook OPTIONS (CORS)",
+      "name": "Webhook OPTIONS CORS",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ],
+      "position": [ 0, 0 ],
       "webhookId": "buscar-boletos"
     },
     {
@@ -57,23 +51,17 @@
       "name": "Resposta CORS",
       "type": "n8n-nodes-base.webhookResponse",
       "typeVersion": 1,
-      "position": [
-        200,
-        0
-      ]
+      "position": [ 200, 0 ]
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body || {};\nconst cpf = (body.cpf || '').toString().replace(/\\D/g, '');\nif (cpf.length !== 11) {\n    return [{ json: { error: true, message: 'CPF inválido' } }];\n}\nlet formattedCpf = cpf.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, \"$1.$2.$3-$4\");\nreturn [{ json: { cpf: formattedCpf, error: false } }];"
+        "jsCode": "const body = $json.body || {};\nconst cpf = (body.cpf || '').toString().replace(/\\D/g, '');\nif (cpf.length !== 11) {\n    return [{ json: { error: true, message: 'CPF invalido' } }];\n}\nlet formattedCpf = cpf.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, \"$1.$2.$3-$4\");\nreturn [{ json: { cpf: formattedCpf, error: false } }];"
       },
       "id": "validar-cpf",
       "name": "Validar CPF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        200,
-        200
-      ]
+      "position": [ 200, 200 ]
     },
     {
       "parameters": {
@@ -87,18 +75,15 @@
         }
       },
       "id": "if-cpf-invalido",
-      "name": "CPF Inválido?",
+      "name": "CPF Invalido",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        400,
-        200
-      ]
+      "position": [ 400, 200 ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"CPF inválido fornecido.\" } }}",
+        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"CPF invalido fornecido.\" } }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -111,10 +96,7 @@
       "name": "Retornar Erro CPF",
       "type": "n8n-nodes-base.webhookResponse",
       "typeVersion": 1,
-      "position": [
-        400,
-        0
-      ]
+      "position": [ 400, 0 ]
     },
     {
       "parameters": {
@@ -123,14 +105,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "api_key",
-              "value": "87E821"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
+            { "name": "api_key", "value": "87E821" },
+            { "name": "Accept", "value": "application/json" }
           ]
         },
         "options": {
@@ -141,10 +117,7 @@
       "name": "Buscar Alunos 8731",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        600,
-        200
-      ]
+      "position": [ 600, 200 ]
     },
     {
       "parameters": {
@@ -153,14 +126,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "api_key",
-              "value": "0EA64A"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
+            { "name": "api_key", "value": "0EA64A" },
+            { "name": "Accept", "value": "application/json" }
           ]
         },
         "options": {
@@ -171,23 +138,17 @@
       "name": "Buscar Alunos 70532",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        800,
-        200
-      ]
+      "position": [ 800, 200 ]
     },
     {
       "parameters": {
-        "jsCode": "let res8731 = $('Buscar Alunos 8731').first().json || {};\nlet res70532 = $('Buscar Alunos 70532').first().json || {};\n\nlet alunos8731 = res8731.value || res8731 || [];\nif (!Array.isArray(alunos8731)) alunos8731 = [alunos8731];\n\nlet alunos70532 = res70532.value || res70532 || [];\nif (!Array.isArray(alunos70532)) alunos70532 = [alunos70532];\n\nlet result = [];\nfor (let a of alunos8731) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '8731', escola: 'CIA (8731)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\nfor (let a of alunos70532) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '70532', escola: 'CIA KIDS (70532)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\n\nif (result.length === 0) return [{ json: { error: true } }];\nreturn result;"
+        "jsCode": "let res8731 = $('Buscar Alunos 8731').first().json || {};\nlet res70532 = $('Buscar Alunos 70532').first().json || {};\nlet alunos8731 = res8731.value || res8731 || [];\nif (!Array.isArray(alunos8731)) alunos8731 = [alunos8731];\nlet alunos70532 = res70532.value || res70532 || [];\nif (!Array.isArray(alunos70532)) alunos70532 = [alunos70532];\nlet result = [];\nfor (let a of alunos8731) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '8731', escola: 'CIA (8731)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\nfor (let a of alunos70532) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '70532', escola: 'CIA KIDS (70532)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\nif (result.length === 0) return [{ json: { error: true } }];\nreturn result;"
       },
       "id": "agrupar-alunos",
       "name": "Agrupar Alunos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1000,
-        200
-      ]
+      "position": [ 1000, 200 ]
     },
     {
       "parameters": {
@@ -201,13 +162,10 @@
         }
       },
       "id": "achou-alunos",
-      "name": "Encontrou Alunos?",
+      "name": "Encontrou Alunos",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [
-        1200,
-        200
-      ]
+      "position": [ 1200, 200 ]
     },
     {
       "parameters": {
@@ -219,18 +177,15 @@
         }
       },
       "id": "chamar-rpa",
-      "name": "Chamar Robô Puppeteer",
+      "name": "Chamar Robo Puppeteer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        1400,
-        100
-      ]
+      "position": [ 1400, 100 ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"Não encontramos nenhum aluno com esse CPF em nenhuma das nossas escolas.\" } }}",
+        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"Nao encontramos nenhum aluno com esse CPF em nenhuma das nossas escolas.\" } }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -240,13 +195,10 @@
         }
       },
       "id": "resposta-nao-encontrado",
-      "name": "Não Encontrado Response",
+      "name": "Nao Encontrado Response",
       "type": "n8n-nodes-base.webhookResponse",
       "typeVersion": 1,
-      "position": [
-        1400,
-        300
-      ]
+      "position": [ 1400, 300 ]
     },
     {
       "parameters": {
@@ -264,10 +216,7 @@
       "name": "Retornar Boletos Front",
       "type": "n8n-nodes-base.webhookResponse",
       "typeVersion": 1,
-      "position": [
-        1600,
-        100
-      ]
+      "position": [ 1600, 100 ]
     }
   ],
   "connections": {
@@ -282,18 +231,29 @@
         ]
       ]
     },
-    "Validar CPF": {
+    "Webhook OPTIONS CORS": {
       "main": [
         [
           {
-            "node": "CPF Inválido?",
+            "node": "Resposta CORS",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CPF Inválido?": {
+    "Validar CPF": {
+      "main": [
+        [
+          {
+            "node": "CPF Invalido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CPF Invalido": {
       "main": [
         [
           {
@@ -337,32 +297,32 @@
       "main": [
         [
           {
-            "node": "Encontrou Alunos?",
+            "node": "Encontrou Alunos",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Encontrou Alunos?": {
+    "Encontrou Alunos": {
       "main": [
         [
           {
-            "node": "Chamar Robô Puppeteer",
+            "node": "Chamar Robo Puppeteer",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Não Encontrado Response",
+            "node": "Nao Encontrado Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Chamar Robô Puppeteer": {
+    "Chamar Robo Puppeteer": {
       "main": [
         [
           {
