@@ -55,8 +55,8 @@
             <div class="modal-icon warning">
                 <i class="ph ph-warning-circle"></i>
             </div>
-            <h2>Atenção</h2>
-            <p>Você está com mais de 5 dias de atraso, entre em contato com a Amais para regularizar os seus débitos.</p>
+            <h2 id="tituloNegociar">Atenção</h2>
+            <p id="textoNegociar">Você está com mais de 5 dias de atraso, entre em contato com a Amais para regularizar os seus débitos.</p>
             
             <div class="modal-actions-col">
                 <a href="https://wa.me/5508008860663?text=Gostaria%20de%20negociar%20meus%20d%C3%A9bitos%20do%20CIA!" id="btnWhatsApp" target="_blank" class="btn-whatsapp pill-shape">
@@ -79,8 +79,8 @@
             <div class="modal-icon success">
                 <i class="ph ph-check-circle"></i>
             </div>
-            <h2>Você está em dia!</h2>
-            <p>Não encontramos nenhuma parcela em atraso.</p>
+            <h2 id="tituloEmDia">Você está em dia!</h2>
+            <p id="textoEmDia">Não encontramos nenhuma parcela em atraso.</p>
             
             <button id="btnQueroPagarProximo" class="btn-primary pill-shape mt-4">
                 Quero pagar o próximo boleto
@@ -98,7 +98,7 @@
                 <i class="ph ph-arrow-left"></i> Voltar
             </button>
             
-            <h2 class="screen-title">Seus Boletos Vencidos</h2>
+            <h2 class="screen-title" id="tituloPagarAtrasados">Seus Boletos Vencidos</h2>
             
             <div id="boletosList" class="boletos-list">
                 <!-- Preenchido via JS -->

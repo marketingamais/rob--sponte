@@ -127,19 +127,28 @@ async function handleFormSubmit(e) {
 let currentProximoBoleto = null;
 
 function handleRobotResponse(data) {
-    // data = { status: 'negociar' | 'pagar_atrasados' | 'em_dia' | 'erro', parcelas: [...], proximoBoleto: {...}, message: "..." }
+    console.log('Resposta N8N:', data);
+    
+    // Pega o nome formatado vindo do backend, ou usa 'Aluno'
+    const nome = data.nomeFormatado ? data.nomeFormatado : "Aluno";
     
     if (data.status === 'erro') {
         alert(data.message || 'Erro ao buscar os dados.');
     }
     else if (data.status === 'negociar') {
+        document.getElementById('tituloNegociar').innerText = `Atenção, ${nome}`;
+        document.getElementById('textoNegociar').innerText = `Você está com mais de 5 dias de atraso, entre em contato com a Amais para regularizar os seus débitos.`;
         openModal('modalNegociar');
     } 
     else if (data.status === 'em_dia') {
+        document.getElementById('tituloEmDia').innerText = `Parabéns, ${nome}!`;
+        document.getElementById('textoEmDia').innerText = `Você está em dia e não encontramos nenhuma parcela em atraso.`;
+        
         currentProximoBoleto = data.proximoBoleto;
         
         const btnProximo = document.getElementById('btnQueroPagarProximo');
         if (currentProximoBoleto && currentProximoBoleto.linhaDigitavel) {
+            document.getElementById('textoEmDia').innerText += ` Caso queira, você consegue pagar o próximo boleto e garantir o nosso desconto de pontualidade.`;
             btnProximo.style.display = 'flex';
             btnProximo.onclick = () => {
                 showLinhaDigitavel(
@@ -155,8 +164,12 @@ function handleRobotResponse(data) {
         openModal('modalEmDia');
     }
     else if (data.status === 'pagar_atrasados') {
+        document.getElementById('tituloPagarAtrasados').innerText = `${nome}, seus Boletos Vencidos`;
         renderBoletosList(data.parcelas);
         openBoletosScreen();
+    } else {
+        // Fallback de segurança caso a API retorne algo inesperado
+        alert('Erro desconhecido ao processar o retorno: ' + JSON.stringify(data));
     }
 }
 
