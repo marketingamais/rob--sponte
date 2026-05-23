@@ -104,7 +104,7 @@ async function handleFormSubmit(e) {
     
     try {
         // Rota oficial do N8N na nuvem
-        const webhookUrl = 'https://n8n.amais.io/webhook/buscar-boletos';
+        const webhookUrl = 'https://n8n.amais.io/webhook/buscar-boletos-novo';
         
         const response = await fetch(webhookUrl, {
             method: 'POST',

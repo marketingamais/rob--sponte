@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "buscar-boletos",
+        "path": "buscar-boletos-novo",
         "responseMode": "lastNode",
         "options": {
           "rawBody": false,
@@ -25,7 +25,7 @@
     {
       "parameters": {
         "httpMethod": "OPTIONS",
-        "path": "buscar-boletos",
+        "path": "buscar-boletos-novo",
         "responseMode": "onReceived",
         "responseCode": 204,
         "options": {
