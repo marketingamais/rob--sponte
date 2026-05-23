@@ -137,18 +137,18 @@
     {
       "parameters": {
         "conditions": {
-          "string": [
+          "boolean": [
             {
-              "value1": "={{ $json.escola_id }}",
-              "operation": "isNotEmpty"
+              "value1": "={{ $json.error }}",
+              "value2": true
             }
           ]
         }
       },
       "id": "achou-alunos",
-      "name": "Encontrou Alunos",
+      "name": "Nao Encontrou Alunos",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
+      "typeVersion": 1,
       "position": [ 1200, 200 ]
     },
     {
@@ -244,25 +244,25 @@
       "main": [
         [
           {
-            "node": "Encontrou Alunos",
+            "node": "Nao Encontrou Alunos",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Encontrou Alunos": {
+    "Nao Encontrou Alunos": {
       "main": [
         [
           {
-            "node": "Chamar Robo Puppeteer",
+            "node": "Nao Encontrado Response",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Nao Encontrado Response",
+            "node": "Chamar Robo Puppeteer",
             "type": "main",
             "index": 0
           }
