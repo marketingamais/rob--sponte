@@ -58,10 +58,11 @@
     {
       "parameters": {
         "conditions": {
-          "boolean": [
+          "string": [
             {
-              "value1": "={{ $json.error }}",
-              "value2": true
+              "value1": "={{ $json.error ? 'true' : 'false' }}",
+              "value2": "true",
+              "operation": "equal"
             }
           ]
         }
@@ -137,10 +138,11 @@
     {
       "parameters": {
         "conditions": {
-          "boolean": [
+          "string": [
             {
-              "value1": "={{ $json.error }}",
-              "value2": true
+              "value1": "={{ $json.error ? 'true' : 'false' }}",
+              "value2": "true",
+              "operation": "equal"
             }
           ]
         }
