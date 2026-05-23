@@ -5,10 +5,14 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "buscar-boletos",
-        "responseMode": "responseNode",
+        "responseMode": "lastNode",
         "options": {
           "rawBody": false,
-          "optionsRespond": true
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
         }
       },
       "id": "webhook-trigger",
@@ -22,22 +26,9 @@
       "parameters": {
         "httpMethod": "OPTIONS",
         "path": "buscar-boletos",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "webhook-options",
-      "name": "Webhook OPTIONS CORS",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [ 0, 0 ],
-      "webhookId": "buscar-boletos"
-    },
-    {
-      "parameters": {
-        "respondWith": "text",
-        "responseBody": "",
+        "responseMode": "onReceived",
+        "responseCode": 204,
         "options": {
-          "responseCode": 204,
           "responseHeaders": {
             "entries": [
               { "name": "Access-Control-Allow-Origin", "value": "*" },
@@ -47,11 +38,12 @@
           }
         }
       },
-      "id": "resposta-cors",
-      "name": "Resposta CORS",
-      "type": "n8n-nodes-base.webhookResponse",
+      "id": "webhook-options",
+      "name": "Webhook OPTIONS CORS",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [ 200, 0 ]
+      "position": [ 0, 0 ],
+      "webhookId": "buscar-boletos-options"
     },
     {
       "parameters": {
@@ -82,20 +74,12 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"CPF invalido fornecido.\" } }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
-            ]
-          }
-        }
+        "jsCode": "return [{ json: { status: 'erro', message: 'CPF invalido fornecido.' } }];"
       },
       "id": "resposta-cpf-invalido",
       "name": "Retornar Erro CPF",
-      "type": "n8n-nodes-base.webhookResponse",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [ 400, 0 ]
     },
     {
@@ -184,39 +168,13 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"status\": \"erro\", \"message\": \"Nao encontramos nenhum aluno com esse CPF em nenhuma das nossas escolas.\" } }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
-            ]
-          }
-        }
+        "jsCode": "return [{ json: { status: 'erro', message: 'Nao encontramos nenhum aluno com esse CPF em nenhuma das nossas escolas.' } }];"
       },
       "id": "resposta-nao-encontrado",
       "name": "Nao Encontrado Response",
-      "type": "n8n-nodes-base.webhookResponse",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [ 1400, 300 ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
-            ]
-          }
-        }
-      },
-      "id": "resposta-boletos",
-      "name": "Retornar Boletos Front",
-      "type": "n8n-nodes-base.webhookResponse",
-      "typeVersion": 1,
-      "position": [ 1600, 100 ]
     }
   ],
   "connections": {
@@ -225,17 +183,6 @@
         [
           {
             "node": "Validar CPF",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Webhook OPTIONS CORS": {
-      "main": [
-        [
-          {
-            "node": "Resposta CORS",
             "type": "main",
             "index": 0
           }
@@ -316,17 +263,6 @@
         [
           {
             "node": "Nao Encontrado Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Chamar Robo Puppeteer": {
-      "main": [
-        [
-          {
-            "node": "Retornar Boletos Front",
             "type": "main",
             "index": 0
           }
