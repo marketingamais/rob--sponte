@@ -253,6 +253,29 @@
         200,
         0
       ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "nomeFormatado",
+              "value": "={{ $node['Agrupar Alunos'] ? $node['Agrupar Alunos'].json.nome : 'Aluno' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "injetar-nome",
+      "name": "Injetar Nome",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        200
+      ]
     }
   ],
   "connections": {
@@ -352,6 +375,26 @@
         [
           {
             "node": "Resposta CORS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Injetar Nome": {
+      "main": [
+        [
+          {
+            "node": "Webhook POST Frontend"
+          }
+        ]
+      ]
+    },
+    "Chamar Robo Puppeteer": {
+      "main": [
+        [
+          {
+            "node": "Injetar Nome",
             "type": "main",
             "index": 0
           }
