@@ -127,7 +127,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let res8731 = $('Buscar Alunos 8731').first().json || {};\nlet res70532 = $('Buscar Alunos 70532').first().json || {};\nlet alunos8731 = res8731.value || res8731 || [];\nif (!Array.isArray(alunos8731)) alunos8731 = [alunos8731];\nlet alunos70532 = res70532.value || res70532 || [];\nif (!Array.isArray(alunos70532)) alunos70532 = [alunos70532];\nlet result = [];\nfor (let a of alunos8731) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '8731', escola: 'CIA (8731)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\nfor (let a of alunos70532) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '70532', escola: 'CIA KIDS (70532)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\nif (result.length === 0) return [{ json: { error: true } }];\nreturn result;"
+        "jsCode": "let res8731 = $('Buscar Alunos 8731').first().json || {};\nlet res70532 = $('Buscar Alunos 70532').first().json || {};\nlet alunos8731 = res8731.value || res8731 || [];\nif (!Array.isArray(alunos8731)) alunos8731 = [alunos8731];\nlet alunos70532 = res70532.value || res70532 || [];\nif (!Array.isArray(alunos70532)) alunos70532 = [alunos70532];\nlet result = [];\nfor (let a of alunos8731) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '8731', escola: 'CIA (8731)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\nfor (let a of alunos70532) {\n    if (a.student_id) result.push({ json: { alunoId: a.student_id, escola_id: '70532', escola: 'CIA KIDS (70532)', nome: a.name, login: a.spontenet_username, senha: encodeURIComponent(a.spontenet_password) } });\n}\nif (result.length === 0) return [{ json: { escola_id: 'vazio', error: true } }];\nreturn result;"
       },
       "id": "agrupar-alunos",
       "name": "Agrupar Alunos",
@@ -140,8 +140,8 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.error ? 'true' : 'false' }}",
-              "value2": "true",
+              "value1": "={{ $json.escola_id }}",
+              "value2": "vazio",
               "operation": "equal"
             }
           ]
