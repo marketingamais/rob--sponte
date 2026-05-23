@@ -91,7 +91,6 @@ function validarCPF(cpf) {
 async function handleFormSubmit(e) {
     e.preventDefault();
     
-    const nome = document.getElementById('nome').value;
     const cpf = document.getElementById('cpf').value.replace(/\D/g, '');
     
     if (!validarCPF(cpf)) {
@@ -109,7 +108,7 @@ async function handleFormSubmit(e) {
         const response = await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, cpf })
+            body: JSON.stringify({ cpf })
         });
         
         const data = await response.json();
