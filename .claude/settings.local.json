@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:integracaopp.sponteweb.com.br)",
+      "WebFetch(domain:webservices.sponteweb.com.br)"
+    ]
+  }
+}
