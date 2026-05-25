@@ -190,9 +190,15 @@ function renderBoletosList(parcelas) {
                 <h4>Parcela ${p.numParcela}</h4>
                 <p>Venceu em: ${p.dataVencimento}</p>
             </div>
+            ${p.linhaDigitavel ? `
             <button class="btn-primary pill-shape" style="padding: 0.75rem 1.5rem; font-size: 0.875rem;" onclick="showLinhaDigitavel('${p.linhaDigitavel}', '${p.numParcela}', '${p.dataVencimento}')">
                 Pagar
             </button>
+            ` : `
+            <span style="font-size: 0.8rem; color: var(--error); padding: 0.5rem; background: #fff0f0; border-radius: 8px;">
+                Boleto indisponível
+            </span>
+            `}
         `;
         listContainer.appendChild(card);
     });
