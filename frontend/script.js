@@ -130,25 +130,51 @@ async function handleFormSubmit(e) {
     startLoadingAnimation();
     
     try {
-        // Rota oficial do N8N na nuvem
         const webhookUrl = 'https://n8n.amais.io/webhook/buscar-boletos-novo';
         
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cpf })
-        });
+        let data = null;
+        let tentativas = 0;
+        const maxTentativas = 3;
+
+        while (tentativas < maxTentativas) {
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cpf })
+                });
+                
+                // Se der erro 502/504 ou não conseguir fazer o parse do JSON, vai cair no catch interno
+                const jsonData = await response.json();
+                
+                // Verifica se o N8N retornou erro de timeout (Error in workflow)
+                if (jsonData.message && jsonData.message.includes('Error in workflow')) {
+                    throw new Error('N8N Timeout');
+                }
+                
+                data = jsonData;
+                break; // Sucesso, sai do loop
+            } catch (err) {
+                tentativas++;
+                if (tentativas >= maxTentativas) {
+                    throw err; // Se já tentou tudo, joga o erro para o catch principal
+                }
+                // Aguarda 3 segundos antes da próxima tentativa para não sobrecarregar
+                await new Promise(r => setTimeout(r, 3000));
+            }
+        }
         
-        const data = await response.json();
         stopLoadingAnimation();
         closeModal('modalLoading');
         
         handleRobotResponse(data);
         
     } catch (error) {
-        console.error(error);
+        console.error('Erro após as tentativas:', error);
         stopLoadingAnimation();
         closeModal('modalLoading');
+        
+        // Mantemos um modal caso falhe completamente após as tentativas
         openModal('modalCpfNaoEncontrado');
     }
 }

@@ -110,7 +110,7 @@
             <h2 id="tituloEmDia">Você está em dia!</h2>
             <p id="textoEmDia">Não encontramos nenhuma parcela em atraso.</p>
             
-            <button id="btnQueroPagarProximo" class="btn-primary pill-shape mt-4">
+            <button id="btnQueroPagarProximo" class="btn-primary pill-shape mt-4" style="margin: 0 auto;">
                 Quero pagar o próximo boleto
             </button>
         </div>
@@ -118,9 +118,9 @@
 
     <!-- Tela Lista Boletos (<= 5 dias) -->
     <div id="telaBoletos" class="screen-overlay hidden">
-        <div class="screen-content">
-            <button class="btn-back" onclick="closeBoletosScreen()">
-                <i class="ph ph-arrow-left"></i> Voltar
+        <div class="screen-content" style="position: relative; text-align: center;">
+            <button class="btn-close-icon" onclick="closeBoletosScreen()">
+                <i class="ph ph-x"></i>
             </button>
             
             <h2 class="screen-title" id="tituloPagarAtrasados">Seus Boletos Vencidos</h2>
