@@ -66,7 +66,7 @@ app.get('/extrair-boleto', async (req, res) => {
         } catch(e) {}
         
         // Espera a tabela carregar ou não (se não tiver parcelas)
-        const temTabela = await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick]', { timeout: 10000 })
+        const temTabela = await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd', { timeout: 20000 })
             .then(() => true).catch(() => false);
         
         if (!temTabela) {
@@ -76,13 +76,13 @@ app.get('/extrair-boleto', async (req, res) => {
         
         // Extrai todas as parcelas da tabela
         const parcelas = await page.evaluate(() => {
-            const rows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick], #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even[onclick]'));
+            const rows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd, #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even'));
             return rows.map((row, index) => {
                 const img = row.querySelector('img[id*="imgSituacao"]');
                 const title = img ? img.getAttribute('title') : '';
-                const numParcela = row.querySelector('td:nth-child(2)') ? row.querySelector('td:nth-child(2)').innerText.trim() : '';
-                const dataVencimento = row.querySelector('td:nth-child(3)') ? row.querySelector('td:nth-child(3)').innerText.trim() : '';
-                const valor = row.querySelector('td:nth-child(4)') ? row.querySelector('td:nth-child(4)').innerText.trim() : '';
+                const numParcela = row.querySelector('td:nth-child(1)') ? row.querySelector('td:nth-child(1)').innerText.trim() : '';
+                const dataVencimento = row.querySelector('td:nth-child(2)') ? row.querySelector('td:nth-child(2)').innerText.trim() : '';
+                const valor = row.querySelector('td:nth-child(3)') ? row.querySelector('td:nth-child(3)').innerText.trim() : '';
                 
                 let diasAtraso = 0;
                 let isVencida = false;
@@ -113,7 +113,7 @@ app.get('/extrair-boleto', async (req, res) => {
         // Função auxiliar para extrair linha digitável de um índice específico da tabela
         const extrairLinhaDigitavel = async (rowIndex) => {
             await page.evaluate((idx) => {
-                const rows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd[onclick], #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even[onclick]'));
+                const rows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd, #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even'));
                 if (rows[idx]) rows[idx].click();
             }, rowIndex);
             
