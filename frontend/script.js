@@ -208,8 +208,12 @@ function handleRobotResponse(data) {
         renderBoletosList(data.parcelas);
         openBoletosScreen();
     } else {
-        // Fallback de segurança caso a API retorne algo inesperado
-        alert('Erro desconhecido ao processar o retorno: ' + JSON.stringify(data));
+        // Fallback de segurança caso a API retorne algo inesperado ou Error in workflow
+        if (data.message && data.message.includes('Error in workflow')) {
+            alert("⚠️ O sistema demorou muito para responder ou está instável no momento. Por favor, tente consultar novamente em alguns instantes.");
+        } else {
+            alert("⚠️ Erro desconhecido ao processar o retorno. Tente novamente mais tarde.");
+        }
     }
 }
 
