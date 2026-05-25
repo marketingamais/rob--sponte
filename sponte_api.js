@@ -66,7 +66,7 @@ app.get('/extrair-boleto', async (req, res) => {
         } catch(e) {}
         
         // Espera a tabela carregar ou não (se não tiver parcelas)
-        const temTabela = await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd', { timeout: 20000 })
+        const temTabela = await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro', { timeout: 20000 })
             .then(() => true).catch(() => false);
         
         if (!temTabela) {
@@ -76,16 +76,23 @@ app.get('/extrair-boleto', async (req, res) => {
         
         // Extrai todas as parcelas da tabela
         const parcelas = await page.evaluate(() => {
-            const rows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd, #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even'));
+            const allRows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr'));
+            // Filtra apenas as linhas que contêm TDs (ignorando o cabeçalho th) e ignora linhas de pager se houver
+            const rows = allRows.filter(r => r.querySelector('td'));
+            
             return rows.map((row, index) => {
                 const img = row.querySelector('img[id*="imgSituacao"]');
-                const title = img ? img.getAttribute('title') : '';
+                const title = img ? (img.getAttribute('title') || '') : '';
+                const src = img ? (img.getAttribute('src') || '') : '';
                 const numParcela = row.querySelector('td:nth-child(1)') ? row.querySelector('td:nth-child(1)').innerText.trim() : '';
                 const dataVencimento = row.querySelector('td:nth-child(2)') ? row.querySelector('td:nth-child(2)').innerText.trim() : '';
                 const valor = row.querySelector('td:nth-child(3)') ? row.querySelector('td:nth-child(3)').innerText.trim() : '';
                 let diasAtraso = 0;
                 let isVencida = false;
-                if (title && (title.toLowerCase().includes('vencida') || title.toLowerCase().includes('pendente'))) {
+                
+                const isVencidaOrPendente = title.toLowerCase().includes('vencida') || title.toLowerCase().includes('pendente') || src.toLowerCase().includes('vencida') || src.toLowerCase().includes('pendente');
+                
+                if (img && isVencidaOrPendente) {
                     if (title.toLowerCase().includes('vencida a')) {
                         isVencida = true;
                         const match = title.match(/\d+/);
