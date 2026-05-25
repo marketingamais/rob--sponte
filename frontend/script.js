@@ -185,7 +185,14 @@ function handleRobotResponse(data) {
     }
     
     // Pega o nome formatado vindo do backend, ou usa 'Aluno'
-    const nome = data.nomeFormatado ? data.nomeFormatado : "Aluno";
+    let nome = data.nomeFormatado ? data.nomeFormatado.trim() : "Aluno";
+    
+    if (nome !== "Aluno") {
+        const parts = nome.split(' ').filter(p => p.trim().length > 0);
+        if (parts.length > 1) {
+            nome = parts[0] + ' ' + parts[parts.length - 1];
+        }
+    }
     
     if (data.status === 'erro') {
         if (data.message && data.message.includes('não possui senha')) {
@@ -196,12 +203,12 @@ function handleRobotResponse(data) {
             openModal('modalCpfNaoEncontrado'); // Fallback to not found for any other error to be safe
         }
     } else if (data.status === 'negociar') {
-        document.getElementById('tituloNegociar').innerText = `Atenção, ${nome}`;
+        document.getElementById('tituloNegociar').innerHTML = `Atenção, <strong>${nome}</strong>`;
         document.getElementById('textoNegociar').innerText = `Você está com mais de 5 dias de atraso, entre em contato com a Amais para regularizar os seus débitos.`;
         openModal('modalNegociar');
     } 
     else if (data.status === 'em_dia') {
-        document.getElementById('tituloEmDia').innerText = `Parabéns, ${nome}!`;
+        document.getElementById('tituloEmDia').innerHTML = `Parabéns, <strong>${nome}</strong>!`;
         document.getElementById('textoEmDia').innerText = `Você está em dia e não encontramos nenhuma parcela em atraso.`;
         
         currentProximoBoleto = data.proximoBoleto;
@@ -224,7 +231,7 @@ function handleRobotResponse(data) {
         openModal('modalEmDia');
     }
     else if (data.status === 'pagar_atrasados') {
-        document.getElementById('tituloPagarAtrasados').innerText = `${nome}, seus Boletos Vencidos`;
+        document.getElementById('tituloPagarAtrasados').innerHTML = `<strong>${nome}</strong>, seus Boletos Vencidos`;
         renderBoletosList(data.parcelas);
         openBoletosScreen();
     } else {

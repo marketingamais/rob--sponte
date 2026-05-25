@@ -1,6 +1,6 @@
 :root {
-    --primary: #0B5CFF;
-    --primary-hover: #0848cc;
+    --primary: #23316E;
+    --primary-hover: #1a2554;
     --whatsapp: #25D366;
     --whatsapp-hover: #1ebd5a;
     --secondary: #E5E7EB;
@@ -21,6 +21,10 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, .headline, .screen-title {
+    color: #23316E;
 }
 
 body {
@@ -444,8 +448,9 @@ body {
 
 /* Spinner */
 .spinner {
-    border: 4px solid rgba(11, 92, 255, 0.1);
-    border-left-color: var(--primary);
+    border: 4px solid #E5E7EB;
+    border-top-color: #23316E;
+    border-right-color: #D00726;
     border-radius: 50%;
     width: 40px;
     height: 40px;
