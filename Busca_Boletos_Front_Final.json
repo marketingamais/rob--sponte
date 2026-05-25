@@ -256,22 +256,12 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "1",
-              "name": "nomeFormatado",
-              "value": "={{ $node['Agrupar Alunos'] ? $node['Agrupar Alunos'].json.nome : 'Aluno' }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "const items = $input.all();\nlet nomeCompleto = 'Aluno';\ntry {\n  const agruparItems = $items('Agrupar Alunos');\n  if (agruparItems && agruparItems.length > 0) {\n    nomeCompleto = agruparItems[0].json.nome || 'Aluno';\n  }\n} catch(e) {}\nfor (let item of items) {\n  let response = item.json || {};\n  const partes = nomeCompleto.split(' ');\n  response.nomeFormatado = partes.length > 1 ? partes[0] + ' ' + partes[1] : partes[0];\n  item.json = response;\n}\nreturn items;"
       },
       "id": "injetar-nome",
       "name": "Injetar Nome",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         1200,
         200
