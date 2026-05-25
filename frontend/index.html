@@ -19,39 +19,62 @@
 </head>
 <body>
     <div class="app-container">
-        <header class="header">
-            <img src="assets/logo-cia.png" alt="CIA" class="logo logo-cia">
-        </header>
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <header class="header">
+                <img src="assets/logo-cia.png" alt="CIA" class="logo logo-cia">
+            </header>
 
-        <main class="main-content">
-            <h1 class="headline" id="headline">Busca de Boletos</h1>
-            
-            <form id="buscaForm" class="form-container">
-                <div class="input-group">
-                    <label for="cpf" style="text-align: center; font-size: 1rem; margin-bottom: 0.5rem;">Digite o seu CPF</label>
-                    <input type="text" id="cpf" class="input-pill" placeholder="000.000.000-00" required maxlength="14" style="text-align: center;">
-                    <span class="error-message hidden" id="cpfError" style="text-align: center;">CPF inválido</span>
-                </div>
+            <main class="main-content">
+                <h1 class="headline" id="headline">Seja bem-vindo(a) ao sistema de consulta de boletos do CIA!</h1>
+                <p class="subtitle">Encontre suas parcelas em aberto de forma rápida e segura.</p>
                 
-                <button type="submit" class="btn-primary pill-shape">
-                    <i class="ph ph-magnifying-glass"></i>
-                    Buscar
-                </button>
-            </form>
-        </main>
+                <form id="buscaForm" class="form-container">
+                    <div class="input-group">
+                        <label for="cpf">Digite o seu CPF</label>
+                        <input type="text" id="cpf" class="input-pill" placeholder="000.000.000-00" required maxlength="14">
+                        <span class="error-message hidden" id="cpfError">CPF inválido</span>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary pill-shape">
+                        <i class="ph ph-magnifying-glass"></i>
+                        Consultar
+                    </button>
+                </form>
+            </main>
+            
+            <footer class="footer">
+                <span>Potencializado por</span>
+                <img src="assets/Logo FLOWIQ@4x.png" alt="FLOWIQ" class="logo-flowiq">
+            </footer>
+        </div>
+
+        <!-- Right Panel (Carousel) -->
+        <div class="right-panel">
+            <div class="carousel-container">
+                <div class="carousel-track">
+                    <img src="assets/IMAGE-CIA-1.jpg" alt="Carousel Image 1">
+                    <img src="assets/IMAGE-CIA-2.jpg" alt="Carousel Image 2">
+                    <img src="assets/IMAGE-CIA-3.png" alt="Carousel Image 3">
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal Loading -->
     <div id="modalLoading" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="spinner"></div>
-            <p style="margin-bottom: 0; font-weight: 500;">Buscando Boletos...</p>
+            <p id="loadingText" style="margin-bottom: 0; font-weight: 500;">Buscando suas informações...</p>
         </div>
     </div>
 
     <!-- Modal Negociar (> 5 dias) -->
     <div id="modalNegociar" class="modal-overlay hidden">
         <div class="modal-content large">
+            <button class="btn-close-icon" onclick="closeModal('modalNegociar')">
+                <i class="ph ph-x"></i>
+            </button>
             <div class="modal-icon warning">
                 <i class="ph ph-warning-circle"></i>
             </div>
@@ -67,15 +90,15 @@
                     Acessar portal de negociações
                 </a>
             </div>
-            <button class="btn-close-modal" onclick="closeModal('modalNegociar')">
-                <i class="ph ph-x"></i> Fechar
-            </button>
         </div>
     </div>
 
     <!-- Modal Em Dia (0 dias) -->
     <div id="modalEmDia" class="modal-overlay hidden">
         <div class="modal-content">
+            <button class="btn-close-icon" onclick="closeModal('modalEmDia')">
+                <i class="ph ph-x"></i>
+            </button>
             <div class="modal-icon success">
                 <i class="ph ph-check-circle"></i>
             </div>
@@ -84,9 +107,6 @@
             
             <button id="btnQueroPagarProximo" class="btn-primary pill-shape mt-4">
                 Quero pagar o próximo boleto
-            </button>
-            <button class="btn-close-modal" onclick="closeModal('modalEmDia')">
-                <i class="ph ph-x"></i> Fechar
             </button>
         </div>
     </div>
@@ -133,6 +153,9 @@
     <!-- Modal Sem Senha -->
     <div id="modalSemSenha" class="modal-overlay hidden">
         <div class="modal-content">
+            <button class="btn-close-icon" onclick="closeModal('modalSemSenha')">
+                <i class="ph ph-x"></i>
+            </button>
             <div class="modal-icon warning">
                 <i class="ph ph-warning-circle"></i>
             </div>
@@ -142,10 +165,24 @@
             <a href="https://wa.me/5599981095341?text=Ol%C3%A1%2C%20tentei%20buscar%20meu%20boleto%20pelo%20sistema%20do%20CIA%20e%20n%C3%A3o%20consegui." target="_blank" class="btn-whatsapp pill-shape mt-4 mb-2" style="display: flex; justify-content: center; align-items: center;">
                 <i class="ti ti-brand-whatsapp"></i> Falar com Suporte
             </a>
-            
-            <button class="btn-close-modal" onclick="closeModal('modalSemSenha')">
-                <i class="ph ph-x"></i> Fechar
+        </div>
+    </div>
+
+    <!-- Modal CPF Não Encontrado -->
+    <div id="modalCpfNaoEncontrado" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="btn-close-icon" onclick="closeModal('modalCpfNaoEncontrado')">
+                <i class="ph ph-x"></i>
             </button>
+            <div class="modal-icon warning">
+                <i class="ph ph-x-circle"></i>
+            </div>
+            <h2>Matrícula não encontrada!</h2>
+            <p>Não encontramos nenhuma matrícula com esse CPF em nenhuma de nossas unidades. Verifique se o número está correto ou entre em contato com nossa secretaria.</p>
+            
+            <a href="https://wa.me/5599981095341?text=Ol%C3%A1%2C%20tentei%20buscar%20meu%20boleto%20pelo%20sistema%20do%20CIA%20e%20n%C3%A3o%20consegui." target="_blank" class="btn-whatsapp pill-shape mt-4 mb-2" style="display: flex; justify-content: center; align-items: center;">
+                <i class="ti ti-brand-whatsapp"></i> Falar com Suporte
+            </a>
         </div>
     </div>
 

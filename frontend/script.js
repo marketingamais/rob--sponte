@@ -7,6 +7,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Animação do Headline
+const loadingPhrases = [
+    "Buscando suas informações...",
+    "Consultando sua matrícula...",
+    "Verificando parcelas em aberto...",
+    "Acessando o portal do aluno...",
+    "Quase lá, só mais um instante...",
+    "Por favor, não feche ou atualize esta página."
+];
+let loadingInterval = null;
+
+function startLoadingAnimation() {
+    const loadingText = document.getElementById('loadingText');
+    let idx = 0;
+    if(loadingText) loadingText.innerText = loadingPhrases[0];
+    loadingInterval = setInterval(() => {
+        idx = (idx + 1) % loadingPhrases.length;
+        if(loadingText) loadingText.innerText = loadingPhrases[idx];
+    }, 3500);
+}
+
+function stopLoadingAnimation() {
+    if (loadingInterval) {
+        clearInterval(loadingInterval);
+        loadingInterval = null;
+    }
+}
+
 function animateHeadline() {
     const headline = document.getElementById('headline');
     const text = headline.innerText;
@@ -100,6 +127,7 @@ async function handleFormSubmit(e) {
     
     // Abre o loading
     openModal('modalLoading');
+    startLoadingAnimation();
     
     try {
         // Rota oficial do N8N na nuvem
@@ -112,14 +140,16 @@ async function handleFormSubmit(e) {
         });
         
         const data = await response.json();
+        stopLoadingAnimation();
         closeModal('modalLoading');
         
         handleRobotResponse(data);
         
     } catch (error) {
         console.error(error);
+        stopLoadingAnimation();
         closeModal('modalLoading');
-        alert("Erro ao conectar com o servidor. Tente novamente.");
+        openModal('modalCpfNaoEncontrado');
     }
 }
 
@@ -129,17 +159,23 @@ let currentProximoBoleto = null;
 function handleRobotResponse(data) {
     console.log('Resposta N8N:', data);
     
+    if (!data || Object.keys(data).length === 0 || (Array.isArray(data) && data.length === 0)) {
+        openModal('modalCpfNaoEncontrado');
+        return;
+    }
+    
     // Pega o nome formatado vindo do backend, ou usa 'Aluno'
     const nome = data.nomeFormatado ? data.nomeFormatado : "Aluno";
     
     if (data.status === 'erro') {
         if (data.message && data.message.includes('não possui senha')) {
             openModal('modalSemSenha');
+        } else if (data.message && (data.message.toLowerCase().includes('encontrado') || data.message.toLowerCase().includes('existe'))) {
+            openModal('modalCpfNaoEncontrado');
         } else {
-            alert(data.message || 'Erro ao buscar os dados.');
+            openModal('modalCpfNaoEncontrado'); // Fallback to not found for any other error to be safe
         }
-    }
-    else if (data.status === 'negociar') {
+    } else if (data.status === 'negociar') {
         document.getElementById('tituloNegociar').innerText = `Atenção, ${nome}`;
         document.getElementById('textoNegociar').innerText = `Você está com mais de 5 dias de atraso, entre em contato com a Amais para regularizar os seus débitos.`;
         openModal('modalNegociar');
