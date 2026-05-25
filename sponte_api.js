@@ -83,13 +83,26 @@ app.get('/extrair-boleto', async (req, res) => {
                 const numParcela = row.querySelector('td:nth-child(1)') ? row.querySelector('td:nth-child(1)').innerText.trim() : '';
                 const dataVencimento = row.querySelector('td:nth-child(2)') ? row.querySelector('td:nth-child(2)').innerText.trim() : '';
                 const valor = row.querySelector('td:nth-child(3)') ? row.querySelector('td:nth-child(3)').innerText.trim() : '';
-                
                 let diasAtraso = 0;
                 let isVencida = false;
-                if (title && title.toLowerCase().includes('vencida a')) {
-                    isVencida = true;
-                    const match = title.match(/\d+/);
-                    if (match) diasAtraso = parseInt(match[0], 10);
+                if (title && (title.toLowerCase().includes('vencida') || title.toLowerCase().includes('pendente'))) {
+                    if (title.toLowerCase().includes('vencida a')) {
+                        isVencida = true;
+                        const match = title.match(/\d+/);
+                        if (match) diasAtraso = parseInt(match[0], 10);
+                    }
+                    if (dataVencimento && dataVencimento.includes('/')) {
+                        const [dia, mes, ano] = dataVencimento.split('/');
+                        const dtVenc = new Date(ano, mes - 1, dia);
+                        const hoje = new Date();
+                        hoje.setHours(0,0,0,0);
+                        const diff = hoje - dtVenc;
+                        const diasDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        if (diasDiff > 0) {
+                            isVencida = true;
+                            diasAtraso = diasDiff;
+                        }
+                    }
                 }
                 
                 return { index, numParcela, dataVencimento, valor, title, isVencida, diasAtraso };
@@ -118,7 +131,13 @@ app.get('/extrair-boleto', async (req, res) => {
             }, rowIndex);
             
             await new Promise(r => setTimeout(r, 1000));
-            await page.click('#ctl00_ContentPlaceHolder1_btnImprimirBoleto');
+            try {
+                await page.waitForSelector('#ctl00_ContentPlaceHolder1_btnImprimirBoleto', { timeout: 3000, visible: true });
+                await page.click('#ctl00_ContentPlaceHolder1_btnImprimirBoleto');
+            } catch (e) {
+                console.log('Botão de imprimir não encontrado ou indisponível.');
+                return null;
+            }
             
             let boletoPage = null;
             for (let i = 0; i < 20; i++) {
