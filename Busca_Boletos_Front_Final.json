@@ -216,7 +216,8 @@
         "url": "={{ 'https://rob-sponte.onrender.com/extrair-boleto?cid=' + $json.escola_id + '&login=' + $json.login + '&senha=' + $json.senha }}",
         "sendHeaders": false,
         "options": {
-          "ignoreResponseCode": true
+          "ignoreResponseCode": true,
+          "timeout": 100000
         }
       },
       "id": "chamar-rpa",
