@@ -122,6 +122,7 @@ async function handleFormSubmit(e) {
     // Abre o loading
     openModal('modalLoading');
     startLoadingAnimation();
+    initGame();
     
     try {
         const webhookUrl = 'https://n8n.amais.io/webhook/buscar-boletos-novo';
@@ -160,6 +161,7 @@ async function handleFormSubmit(e) {
         
         stopLoadingAnimation();
         closeModal('modalLoading');
+        cleanupGame();
         
         handleRobotResponse(data);
         
@@ -167,6 +169,7 @@ async function handleFormSubmit(e) {
         console.error('Erro após as tentativas:', error);
         stopLoadingAnimation();
         closeModal('modalLoading');
+        cleanupGame();
         
         // Mantemos um modal caso falhe completamente após as tentativas
         openModal('modalCpfNaoEncontrado');
@@ -318,4 +321,188 @@ function copyLinhaDigitavel() {
             feedback.classList.add('hidden');
         }, 3000);
     });
+}
+
+// === MINI-GAME DE INGLÊS ===
+
+const gameActivities = [
+    {
+        instruction: "Tradução de palavra",
+        question: "O que significa a palavra 'Hello'?",
+        options: ["Tchau", "Olá", "Obrigado", "Por favor"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Tradução de palavra",
+        question: "O que significa 'School'?",
+        options: ["Escola", "Casa", "Trabalho", "Livro"],
+        correctIndex: 0
+    },
+    {
+        instruction: "Complete a frase",
+        question: "Complete: 'I ___ a student.'",
+        options: ["are", "is", "am", "be"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Tradução de frase",
+        question: "Como se diz 'Bom dia' em inglês?",
+        options: ["Good night", "Good morning", "Good afternoon", "Good evening"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Vocabulário",
+        question: "Qual é a tradução de 'Beautiful'?",
+        options: ["Feio", "Rápido", "Bonito(a)", "Forte"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Gramática",
+        question: "Qual está correto?",
+        options: ["She don't like cats", "She doesn't like cats", "She not like cats", "She no like cats"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Tradução de palavra",
+        question: "O que significa 'Teacher'?",
+        options: ["Aluno", "Diretor", "Professor(a)", "Médico"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Complete a frase",
+        question: "Complete: 'They ___ playing soccer right now.'",
+        options: ["is", "was", "are", "be"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Vocabulário",
+        question: "Qual é a tradução de 'Window'?",
+        options: ["Porta", "Teto", "Chão", "Janela"],
+        correctIndex: 3
+    },
+    {
+        instruction: "Expressão idiomática",
+        question: "O que significa 'Break a leg'?",
+        options: ["Quebre a perna", "Tome cuidado", "Boa sorte", "Vá embora"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Tradução de frase",
+        question: "Como se diz 'Eu tenho 20 anos' em inglês?",
+        options: ["I have 20 years", "I am 20 years old", "I got 20 years", "I be 20 old"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Gramática",
+        question: "Qual é o plural de 'Child'?",
+        options: ["Childs", "Childes", "Children", "Childrens"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Vocabulário",
+        question: "O que significa 'Hungry'?",
+        options: ["Com sede", "Cansado", "Feliz", "Com fome"],
+        correctIndex: 3
+    },
+    {
+        instruction: "Tradução de frase",
+        question: "Como se diz 'Qual é o seu nome?' em inglês?",
+        options: ["How are you?", "Where are you from?", "What is your name?", "How old are you?"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Vocabulário avançado",
+        question: "O que significa 'Fluent'?",
+        options: ["Iniciante", "Fluente", "Lento", "Confuso"],
+        correctIndex: 1
+    }
+];
+
+let currentGameIndex = 0;
+let gameTimer = null;
+
+function initGame() {
+    cleanupGame(); // Ensure no left-over timers
+    currentGameIndex = 0;
+    
+    document.getElementById('gameStartScreen').classList.remove('hidden');
+    document.getElementById('gameActiveScreen').classList.add('hidden');
+    document.getElementById('gameEndScreen').classList.add('hidden');
+}
+
+function startGame() {
+    document.getElementById('gameStartScreen').classList.add('hidden');
+    document.getElementById('gameActiveScreen').classList.remove('hidden');
+    
+    renderActivity(currentGameIndex);
+}
+
+function renderActivity(index) {
+    const activity = gameActivities[index];
+    const container = document.getElementById('gameActivityContent');
+    const counter = document.getElementById('gameCounter');
+    const progressBar = document.getElementById('gameProgressBar');
+    
+    // Update progress (starts at 0 width for the first question)
+    counter.innerText = `Atividade ${index + 1} de ${gameActivities.length}`;
+    progressBar.style.width = `${((index) / gameActivities.length) * 100}%`;
+    
+    // Clear and rebuild content
+    container.innerHTML = `
+        <div class="game-question-instruction">${activity.instruction}</div>
+        <div class="game-question">${activity.question}</div>
+        <div class="game-options" id="gameOptionsContainer">
+            ${activity.options.map((opt, i) => `
+                <button class="game-option" onclick="handleGameAnswer(${i})">${['A', 'B', 'C', 'D'][i]}) ${opt}</button>
+            `).join('')}
+        </div>
+        <div id="gameFeedback" class="game-feedback"></div>
+    `;
+}
+
+function handleGameAnswer(selectedIndex) {
+    const activity = gameActivities[currentGameIndex];
+    const optionsContainer = document.getElementById('gameOptionsContainer');
+    const buttons = optionsContainer.querySelectorAll('.game-option');
+    const feedback = document.getElementById('gameFeedback');
+    
+    // Disable all buttons to prevent double clicking
+    buttons.forEach(btn => btn.disabled = true);
+    
+    if (selectedIndex === activity.correctIndex) {
+        buttons[selectedIndex].classList.add('correct');
+        feedback.innerHTML = '<span class="success">Correto! ✓</span>';
+    } else {
+        buttons[selectedIndex].classList.add('incorrect');
+        buttons[activity.correctIndex].classList.add('missed');
+        feedback.innerHTML = '<span class="error">Quase! A resposta certa é destacada acima.</span>';
+    }
+    
+    // Update progress bar early to reflect completion of this step
+    const progressBar = document.getElementById('gameProgressBar');
+    progressBar.style.width = `${((currentGameIndex + 1) / gameActivities.length) * 100}%`;
+    
+    // Move to next activity after 1.2s delay
+    gameTimer = setTimeout(() => {
+        nextActivity();
+    }, 1200);
+}
+
+function nextActivity() {
+    currentGameIndex++;
+    
+    if (currentGameIndex >= gameActivities.length) {
+        // Game completed
+        document.getElementById('gameActiveScreen').classList.add('hidden');
+        document.getElementById('gameEndScreen').classList.remove('hidden');
+    } else {
+        renderActivity(currentGameIndex);
+    }
+}
+
+function cleanupGame() {
+    if (gameTimer) {
+        clearTimeout(gameTimer);
+        gameTimer = null;
+    }
 }

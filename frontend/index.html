@@ -69,10 +69,43 @@
     </div>
 
     <!-- Modal Loading -->
-    <div id="modalLoading" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="spinner"></div>
-            <p id="loadingText" style="margin-bottom: 0; font-weight: 500;">Buscando suas informações...</p>
+    <div id="modalLoading" class="modal-overlay hidden" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+        <div class="modal-loading-content">
+            <!-- Coluna Esquerda: Loading do Sistema -->
+            <div class="loading-side">
+                <div class="spinner"></div>
+                <p id="loadingText" style="margin-bottom: 0; font-weight: 500;">Buscando suas informações...</p>
+            </div>
+            
+            <!-- Coluna Direita: Mini-game -->
+            <div class="game-side">
+                <!-- Tela Inicial do Game -->
+                <div id="gameStartScreen" class="game-screen">
+                    <i class="ph ph-graduation-cap game-icon"></i>
+                    <h3 class="game-title">Que tal praticar seu inglês enquanto buscamos seu boleto?</h3>
+                    <p class="game-subtitle">Atividades rápidas para você não perder tempo.</p>
+                    <button class="btn-game-start" onclick="startGame()">Iniciar</button>
+                </div>
+                
+                <!-- Tela Ativa do Game -->
+                <div id="gameActiveScreen" class="game-screen hidden">
+                    <div class="game-progress-container">
+                        <div id="gameProgressBar" class="game-progress-bar"></div>
+                    </div>
+                    <p id="gameCounter" class="game-counter">Atividade 1 de 15</p>
+                    
+                    <div id="gameActivityContent" class="game-activity-content">
+                        <!-- Renderizado via JS -->
+                    </div>
+                </div>
+                
+                <!-- Tela Conclusão do Game -->
+                <div id="gameEndScreen" class="game-screen hidden">
+                    <i class="ph ph-trophy game-icon-large"></i>
+                    <h3 class="game-title">Incrível! Você concluiu todas as atividades.</h3>
+                    <p class="game-subtitle">Continue praticando para evoluir no inglês.</p>
+                </div>
+            </div>
         </div>
     </div>
 
