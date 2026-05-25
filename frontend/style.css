@@ -61,7 +61,7 @@ body {
 }
 
 .logo {
-    max-height: 40px;
+    max-height: 80px;
     object-fit: contain;
 }
 
@@ -118,9 +118,37 @@ body {
 .carousel-track img:nth-child(3) { animation-delay: 10s; }
 
 @keyframes fadeCarousel {
-    0%, 25% { opacity: 1; z-index: 1; }
-    33%, 92% { opacity: 0; z-index: 0; }
-    100% { opacity: 1; z-index: 1; }
+    0% { opacity: 1; z-index: 1; transform: scale(1.05) translateX(0); }
+    25% { opacity: 1; z-index: 1; transform: scale(1.05) translateX(-2%); }
+    33% { opacity: 0; z-index: 0; transform: scale(1.05) translateX(-2%); }
+    92% { opacity: 0; z-index: 0; transform: scale(1.05) translateX(0); }
+    100% { opacity: 1; z-index: 1; transform: scale(1.05) translateX(0); }
+}
+
+.carousel-indicators {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.75rem;
+    z-index: 10;
+}
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.4);
+    animation: dotActive 15s infinite;
+    transition: all 0.3s;
+}
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 5s; }
+.dot:nth-child(3) { animation-delay: 10s; }
+
+@keyframes dotActive {
+    0%, 25% { background-color: #ffffff; transform: scale(1.3); }
+    33%, 100% { background-color: rgba(255, 255, 255, 0.4); transform: scale(1); }
 }
 
 @media (max-width: 900px) {
@@ -200,7 +228,7 @@ body {
     display: flex;
     justify-content: flex-start;
     flex-wrap: wrap;
-    gap: 0.2rem;
+    gap: 0rem;
 }
 
 .subtitle {
