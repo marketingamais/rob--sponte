@@ -43,21 +43,15 @@ function animateHeadline() {
     const words = text.split(' ');
     
     words.forEach((word, wordIndex) => {
-        const wordSpan = document.createElement('span');
-        wordSpan.style.display = 'inline-block';
-        wordSpan.style.whiteSpace = 'nowrap';
+        const span = document.createElement('span');
+        span.innerText = word;
+        span.className = 'animated-word';
+        span.style.display = 'inline-block';
         
-        word.split('').forEach((char, charIndex) => {
-            const span = document.createElement('span');
-            span.innerText = char;
-            span.className = 'letter';
-            // Delay escalonado para cada letra
-            const totalIndex = (wordIndex * 5) + charIndex;
-            span.style.animationDelay = `${totalIndex * 0.05}s`;
-            wordSpan.appendChild(span);
-        });
+        // Delay escalonado para cada palavra (mais rápido)
+        span.style.animationDelay = `${wordIndex * 0.08}s`;
         
-        headline.appendChild(wordSpan);
+        headline.appendChild(span);
         
         // Adiciona o espaço de volta, exceto na última palavra
         if (wordIndex < words.length - 1) {
