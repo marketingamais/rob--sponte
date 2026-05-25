@@ -56,8 +56,10 @@ body {
 .header {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     margin-bottom: 2rem;
+    width: 100%;
+    max-width: 500px;
 }
 
 .logo {
@@ -68,9 +70,11 @@ body {
 .footer {
     position: absolute;
     bottom: 2rem;
-    left: 4rem;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -179,6 +183,7 @@ body {
         position: relative;
         bottom: 0;
         left: 0;
+        transform: none;
         margin-top: 1.5rem;
         justify-content: center;
     }
