@@ -133,7 +133,11 @@ function handleRobotResponse(data) {
     const nome = data.nomeFormatado ? data.nomeFormatado : "Aluno";
     
     if (data.status === 'erro') {
-        alert(data.message || 'Erro ao buscar os dados.');
+        if (data.message && data.message.includes('não possui senha')) {
+            openModal('modalSemSenha');
+        } else {
+            alert(data.message || 'Erro ao buscar os dados.');
+        }
     }
     else if (data.status === 'negociar') {
         document.getElementById('tituloNegociar').innerText = `Atenção, ${nome}`;
