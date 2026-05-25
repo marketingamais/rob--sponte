@@ -520,6 +520,10 @@ body {
     border-color: #d1d5db;
 }
 
+.boleto-info {
+    text-align: left;
+}
+
 .boleto-info h4 {
     font-size: 1.125rem;
     margin-bottom: 0.25rem;

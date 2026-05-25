@@ -258,7 +258,7 @@ function renderBoletosList(parcelas) {
                 <p>Venceu em: ${p.dataVencimento}</p>
             </div>
             ${p.linhaDigitavel ? `
-            <button class="btn-primary pill-shape" style="padding: 0.75rem 1.5rem; font-size: 0.875rem;" onclick="showLinhaDigitavel('${p.linhaDigitavel}', '${p.numParcela}', '${p.dataVencimento}')">
+            <button class="btn-whatsapp pill-shape" style="padding: 0.75rem 1.5rem; font-size: 0.875rem;" onclick="showLinhaDigitavel('${p.linhaDigitavel}', '${p.numParcela}', '${p.dataVencimento}')">
                 Pagar
             </button>
             ` : `
