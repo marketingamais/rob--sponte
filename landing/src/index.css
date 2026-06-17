@@ -1,11 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #FAFAFA;
-    color: #111827;
-  }
+@theme {
+  --color-brand-blue: #23316E;
+  --color-brand-red: #D00726;
+  --color-brand-dark: #111827;
+  --color-brand-gray: #E5E7EB;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #FAFAFA;
+  color: #111827;
 }

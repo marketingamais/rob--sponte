@@ -112,7 +112,12 @@ app.get('/extrair-boleto', async (req, res) => {
                     }
                 }
                 
-                return { index, numParcela, dataVencimento, valor, title, isVencida, diasAtraso };
+                let isPendente = false;
+                if (img && (title.toLowerCase().includes('pendente') || src.toLowerCase().includes('pendente'))) {
+                    isPendente = true;
+                }
+                
+                return { index, numParcela, dataVencimento, valor, title, isVencida, diasAtraso, isPendente };
             });
         });
 
@@ -183,11 +188,23 @@ app.get('/extrair-boleto', async (req, res) => {
         }
 
         // Regra 3: Nenhuma atrasada (Em dia)
-        // Extrai a primeira parcela (próxima a vencer)
-        const proxima = parcelas[0];
-        const linhaProxima = await extrairLinhaDigitavel(proxima.index);
+        // Extrai a primeira parcela (próxima a vencer) que está pendente
+        const proximas = parcelas.filter(p => p.isPendente && !p.isVencida);
+        let proxima = null;
+        let linhaProxima = null;
+        
+        if (proximas.length > 0) {
+            proxima = proximas[0];
+            linhaProxima = await extrairLinhaDigitavel(proxima.index);
+        }
+        
         await browser.close();
-        return res.json({ status: 'em_dia', proximoBoleto: { ...proxima, linhaDigitavel: linhaProxima } });
+        
+        if (proxima && linhaProxima) {
+            return res.json({ status: 'em_dia', proximoBoleto: { ...proxima, linhaDigitavel: linhaProxima } });
+        } else {
+            return res.json({ status: 'em_dia', message: 'Nenhuma parcela futura disponível para pagamento.' });
+        }
 
     } catch (e) {
         if (browser) await browser.close();

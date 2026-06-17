@@ -317,8 +317,16 @@ function copyLinhaDigitavel() {
         const feedback = document.getElementById('copyFeedback');
         feedback.classList.remove('hidden');
         
+        const box = document.querySelector('.linha-digitavel-box');
+        if (box) {
+            box.classList.remove('glow-green');
+            void box.offsetWidth; // force reflow to restart animation
+            box.classList.add('glow-green');
+        }
+        
         setTimeout(() => {
             feedback.classList.add('hidden');
+            if (box) box.classList.remove('glow-green');
         }, 3000);
     });
 }

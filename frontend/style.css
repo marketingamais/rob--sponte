@@ -841,3 +841,13 @@ body {
 
 .mb-4 { margin-bottom: 1rem; }
 .mt-4 { margin-top: 1rem; }
+
+.glow-green {
+    animation: glow-green-anim 1s ease-out;
+}
+
+@keyframes glow-green-anim {
+    0% { box-shadow: 0 0 5px var(--whatsapp); outline: 2px solid var(--whatsapp); }
+    50% { box-shadow: 0 0 20px var(--whatsapp); outline: 2px solid var(--whatsapp); }
+    100% { box-shadow: 0 0 0px transparent; outline: 2px solid transparent; }
+}
