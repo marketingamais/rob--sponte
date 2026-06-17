@@ -65,11 +65,17 @@ app.get('/extrair-boleto', async (req, res) => {
             await page.waitForFunction(() => window.location.href.toLowerCase().includes('financeiro'), { timeout: 15000 });
         } catch(e) {}
         
+        const isFinanceiro = await page.evaluate(() => window.location.href.toLowerCase().includes('financeiro'));
+        if (!isFinanceiro) {
+            throw new Error('Navegação falhou: Não foi possível acessar a tela financeira.');
+        }
+        
         // Espera a tabela carregar ou não (se não tiver parcelas)
         const temTabela = await page.waitForSelector('#ctl00_ContentPlaceHolder1_grdFinanceiro', { timeout: 20000 })
             .then(() => true).catch(() => false);
         
         if (!temTabela) {
+            // Verifica se a tabela realmente não existe na página financeira (ex: aluno sem histórico)
             await browser.close();
             return res.json({ status: 'em_dia', message: 'Nenhuma parcela pendente encontrada.' });
         }
