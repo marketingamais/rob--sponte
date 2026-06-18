@@ -423,6 +423,120 @@ const gameActivities = [
         question: "O que significa 'Fluent'?",
         options: ["Iniciante", "Fluente", "Lento", "Confuso"],
         correctIndex: 1
+    },
+    {
+        instruction: "Tradução de palavra",
+        question: "Como se diz 'Maçã' em inglês?",
+        options: ["Apple", "Orange", "Banana", "Grape"],
+        correctIndex: 0
+    },
+    {
+        instruction: "Gramática",
+        question: "Qual é o passado de 'Go'?",
+        options: ["Goed", "Gone", "Went", "Going"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Vocabulário",
+        question: "O que significa 'Always'?",
+        options: ["Nunca", "Sempre", "Às vezes", "Hoje"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Complete a frase",
+        question: "Complete: '___ you speak English?'",
+        options: ["Does", "Is", "Are", "Do"],
+        correctIndex: 3
+    },
+    {
+        instruction: "Expressão",
+        question: "O que significa 'How are you?'",
+        options: ["Onde você está?", "Como vai você?", "Quem é você?", "Qual a sua idade?"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Vocabulário",
+        question: "Como se diz 'Água' em inglês?",
+        options: ["Fire", "Earth", "Water", "Wind"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Gramática",
+        question: "Complete: 'She ___ my best friend.'",
+        options: ["am", "is", "are", "be"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Tradução de palavra",
+        question: "O que é 'Breakfast'?",
+        options: ["Almoço", "Jantar", "Lanche", "Café da manhã"],
+        correctIndex: 3
+    },
+    {
+        instruction: "Cores",
+        question: "Qual cor é 'Yellow'?",
+        options: ["Azul", "Amarelo", "Verde", "Vermelho"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Números",
+        question: "Como se diz o número 10 em inglês?",
+        options: ["Three", "Eight", "Ten", "Twelve"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Animais",
+        question: "O que é um 'Dog'?",
+        options: ["Gato", "Cachorro", "Pássaro", "Peixe"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Complete a frase",
+        question: "Complete: 'I live ___ Brazil.'",
+        options: ["on", "at", "in", "to"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Vocabulário",
+        question: "O que significa 'Never'?",
+        options: ["Sempre", "Talvez", "Hoje", "Nunca"],
+        correctIndex: 3
+    },
+    {
+        instruction: "Verbos",
+        question: "Qual é a tradução de 'To read'?",
+        options: ["Escrever", "Ouvir", "Falar", "Ler"],
+        correctIndex: 3
+    },
+    {
+        instruction: "Família",
+        question: "O que significa 'Brother'?",
+        options: ["Irmão", "Pai", "Tio", "Avô"],
+        correctIndex: 0
+    },
+    {
+        instruction: "Complete a frase",
+        question: "Complete: 'We ___ happy.'",
+        options: ["am", "is", "are", "was"],
+        correctIndex: 2
+    },
+    {
+        instruction: "Clima",
+        question: "O que significa 'Rain'?",
+        options: ["Sol", "Vento", "Neve", "Chuva"],
+        correctIndex: 3
+    },
+    {
+        instruction: "Tradução de palavra",
+        question: "Como se diz 'Por favor' em inglês?",
+        options: ["Thank you", "Please", "Sorry", "Excuse me"],
+        correctIndex: 1
+    },
+    {
+        instruction: "Gramática",
+        question: "Qual é o passado de 'Eat'?",
+        options: ["Eated", "Ate", "Eaten", "Eating"],
+        correctIndex: 1
     }
 ];
 
