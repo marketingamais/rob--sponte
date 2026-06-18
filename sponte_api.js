@@ -209,13 +209,20 @@ app.get('/extrair-boleto', async (req, res) => {
                 if (!boletoPage) return null;
                 
                 await boletoPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
-                const texto = await boletoPage.evaluate(() => document.body.innerText);
                 
-                const regexLinha = /\d{5}\.?\d{5}\s*\d{5}\.?\d{6}\s*\d{5}\.?\d{6}\s*\d\s*\d{14}/;
-                const match = texto.match(regexLinha);
+                let texto = '';
                 let linha = null;
-                if (match) {
-                    linha = match[0].replace(/\D/g, '');
+                const regexLinha = /\d{5}\.?\d{5}\s*\d{5}\.?\d{6}\s*\d{5}\.?\d{6}\s*\d\s*\d{14}/;
+                
+                // Polling for the barcode text instead of reading just once
+                for (let k = 0; k < 6; k++) {
+                    texto = await boletoPage.evaluate(() => document.body.innerText);
+                    const match = texto.match(regexLinha);
+                    if (match) {
+                        linha = match[0].replace(/\D/g, '');
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 1500));
                 }
                 
                 await boletoPage.close();
@@ -246,7 +253,7 @@ app.get('/extrair-boleto', async (req, res) => {
             
             await browser.close();
             
-            if (proxima && linhaProxima) {
+            if (proxima) {
                 return res.json({ status: 'em_dia', proximoBoleto: { ...proxima, linhaDigitavel: linhaProxima } });
             } else {
                 return res.json({ status: 'em_dia', message: 'Nenhuma parcela futura disponível para pagamento.' });
