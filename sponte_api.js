@@ -23,6 +23,17 @@ app.get('/extrair-boleto', async (req, res) => {
             });
             const page = await browser.newPage();
             
+            // Reativando a intercepção para melhorar a velocidade (Sponte estava dando timeout)
+            await page.setRequestInterception(true);
+            page.on('request', (req) => {
+                const rt = req.resourceType();
+                if (['image', 'stylesheet', 'font', 'media'].includes(rt)) {
+                    req.abort();
+                } else {
+                    req.continue();
+                }
+            });
+            
             await page.goto(`https://portal.sponteweb.com.br/SelecionaLogin.aspx?cid=${cid}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
             await page.type('#txtLogin', login);
             await page.type('#txtSenha', senha);
@@ -180,8 +191,12 @@ app.get('/extrair-boleto', async (req, res) => {
                 
                 await new Promise(r => setTimeout(r, 1000));
                 try {
-                    await page.waitForSelector('#ctl00_ContentPlaceHolder1_btnImprimirBoleto', { timeout: 3000, visible: true });
-                    await page.click('#ctl00_ContentPlaceHolder1_btnImprimirBoleto');
+                    // Sem visible: true, pois o CSS bloqueado deixa o botão com 0x0
+                    await page.waitForSelector('#ctl00_ContentPlaceHolder1_btnImprimirBoleto', { timeout: 3000 });
+                    await page.evaluate(() => {
+                        const btn = document.querySelector('#ctl00_ContentPlaceHolder1_btnImprimirBoleto');
+                        if (btn) btn.click();
+                    });
                 } catch (e) {
                     console.log('Botão de imprimir não encontrado ou indisponível.');
                     return null;
