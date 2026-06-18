@@ -10,7 +10,7 @@ app.get('/extrair-boleto', async (req, res) => {
         return res.status(200).json({ status: 'erro', message: 'Este aluno não possui senha cadastrada no Portal da Sponte para que possamos consultar os boletos.' });
     }
 
-    const maxTentativas = 3;
+    const maxTentativas = 5;
     let ultimoErro = null;
 
     for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
@@ -22,17 +22,6 @@ app.get('/extrair-boleto', async (req, res) => {
                 args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-popup-blocking']
             });
             const page = await browser.newPage();
-            
-            // Otimização: Bloquear imagens, CSS e fontes para carregar mais rápido
-            await page.setRequestInterception(true);
-            page.on('request', (req) => {
-                const rt = req.resourceType();
-                if (['image', 'stylesheet', 'font', 'media'].includes(rt)) {
-                    req.abort();
-                } else {
-                    req.continue();
-                }
-            });
             
             await page.goto(`https://portal.sponteweb.com.br/SelecionaLogin.aspx?cid=${cid}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
             await page.type('#txtLogin', login);
