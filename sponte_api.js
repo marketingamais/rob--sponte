@@ -137,10 +137,10 @@ app.get('/extrair-boleto', async (req, res) => {
                     let diasAtraso = 0;
                     let isVencida = false;
                     
-                    const isVencidaOrPendente = title.toLowerCase().includes('vencida') || title.toLowerCase().includes('pendente') || src.toLowerCase().includes('vencida') || src.toLowerCase().includes('pendente');
+                    const isVencidaOrPendente = title.toLowerCase().includes('vencid') || title.toLowerCase().includes('pendente') || src.toLowerCase().includes('vencid') || src.toLowerCase().includes('pendente');
                     
                     if (img && isVencidaOrPendente) {
-                        if (title.toLowerCase().includes('vencida a')) {
+                        if (title.toLowerCase().includes('vencid')) {
                             isVencida = true;
                             const match = title.match(/\d+/);
                             if (match) diasAtraso = parseInt(match[0], 10);
@@ -148,8 +148,11 @@ app.get('/extrair-boleto', async (req, res) => {
                         if (dataVencimento && dataVencimento.includes('/')) {
                             const [dia, mes, ano] = dataVencimento.split('/');
                             const dtVenc = new Date(ano, mes - 1, dia);
-                            const hoje = new Date();
+                            
+                            const strBR = new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"});
+                            const hoje = new Date(strBR);
                             hoje.setHours(0,0,0,0);
+                            
                             const diff = hoje - dtVenc;
                             const diasDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
                             if (diasDiff > 0) {
@@ -172,6 +175,23 @@ app.get('/extrair-boleto', async (req, res) => {
                 await browser.close();
                 return res.json({ status: 'em_dia', message: 'Nenhuma parcela pendente encontrada.' });
             }
+
+            // FILTRO ANTI-FANTASMAS (Sponte Bug)
+            let parcelasUnicas = new Map();
+            for (let p of parcelas) {
+                let chave = p.dataVencimento;
+                if (!parcelasUnicas.has(chave)) {
+                    parcelasUnicas.set(chave, p);
+                } else {
+                    let existente = parcelasUnicas.get(chave);
+                    let pNum = parseInt(p.numParcela) || 0;
+                    let exNum = parseInt(existente.numParcela) || 0;
+                    if (pNum > exNum) {
+                        parcelasUnicas.set(chave, p);
+                    }
+                }
+            }
+            parcelas = Array.from(parcelasUnicas.values());
 
             const atrasadas = parcelas.filter(p => p.isVencida);
             const maxAtraso = atrasadas.length > 0 ? Math.max(...atrasadas.map(p => p.diasAtraso)) : 0;
