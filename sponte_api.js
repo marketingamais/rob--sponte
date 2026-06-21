@@ -3,24 +3,6 @@ const puppeteer = require('puppeteer');
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.use(express.json());
-
-app.get('/ping', (req, res) => res.send('pong'));
-
-const { runWithRetries } = require('./export_sponte.js');
-
-app.post('/iniciar-exportacao', (req, res) => {
-    const webhookUrl = req.body.webhookUrl || req.query.webhookUrl;
-    if (!webhookUrl) {
-        return res.status(400).json({ error: 'É necessário fornecer a webhookUrl no corpo (JSON) ou query params.' });
-    }
-    
-    // Responde imediatamente
-    res.json({ status: 'Processo de exportação iniciado em background!', webhookUrl });
-    
-    // Roda o Puppeteer em segundo plano
-    runWithRetries(webhookUrl).catch(e => console.error('Erro geral no robô:', e));
-});
 
 app.get('/extrair-boleto', async (req, res) => {
     const { cid, login, senha } = req.query;
@@ -155,10 +137,10 @@ app.get('/extrair-boleto', async (req, res) => {
                     let diasAtraso = 0;
                     let isVencida = false;
                     
-                    const isVencidaOrPendente = title.toLowerCase().includes('vencid') || title.toLowerCase().includes('pendente') || src.toLowerCase().includes('vencid') || src.toLowerCase().includes('pendente');
+                    const isVencidaOrPendente = title.toLowerCase().includes('vencida') || title.toLowerCase().includes('pendente') || src.toLowerCase().includes('vencida') || src.toLowerCase().includes('pendente');
                     
                     if (img && isVencidaOrPendente) {
-                        if (title.toLowerCase().includes('vencid')) {
+                        if (title.toLowerCase().includes('vencida a')) {
                             isVencida = true;
                             const match = title.match(/\d+/);
                             if (match) diasAtraso = parseInt(match[0], 10);
@@ -166,12 +148,8 @@ app.get('/extrair-boleto', async (req, res) => {
                         if (dataVencimento && dataVencimento.includes('/')) {
                             const [dia, mes, ano] = dataVencimento.split('/');
                             const dtVenc = new Date(ano, mes - 1, dia);
-                            
-                            // Força o horário do Brasil (America/Sao_Paulo)
-                            const strBR = new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"});
-                            const hoje = new Date(strBR);
+                            const hoje = new Date();
                             hoje.setHours(0,0,0,0);
-                            
                             const diff = hoje - dtVenc;
                             const diasDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
                             if (diasDiff > 0) {
@@ -194,25 +172,6 @@ app.get('/extrair-boleto', async (req, res) => {
                 await browser.close();
                 return res.json({ status: 'em_dia', message: 'Nenhuma parcela pendente encontrada.' });
             }
-
-            // FILTRO ANTI-FANTASMAS (Sponte Bug)
-            // Se o sistema encontrar duas parcelas com a exata mesma data de vencimento,
-            // ele compara o número da parcela e mantém apenas a mais nova (ex: ignora a 9 e mantém a 11).
-            let parcelasUnicas = new Map();
-            for (let p of parcelas) {
-                let chave = p.dataVencimento;
-                if (!parcelasUnicas.has(chave)) {
-                    parcelasUnicas.set(chave, p);
-                } else {
-                    let existente = parcelasUnicas.get(chave);
-                    let pNum = parseInt(p.numParcela) || 0;
-                    let exNum = parseInt(existente.numParcela) || 0;
-                    if (pNum > exNum) {
-                        parcelasUnicas.set(chave, p);
-                    }
-                }
-            }
-            parcelas = Array.from(parcelasUnicas.values());
 
             const atrasadas = parcelas.filter(p => p.isVencida);
             const maxAtraso = atrasadas.length > 0 ? Math.max(...atrasadas.map(p => p.diasAtraso)) : 0;
