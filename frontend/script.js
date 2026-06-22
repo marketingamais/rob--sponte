@@ -129,7 +129,7 @@ async function handleFormSubmit(e) {
         
         let data = null;
         let tentativas = 0;
-        const maxTentativas = 3;
+        const maxTentativas = 5;
 
         while (tentativas < maxTentativas) {
             try {
@@ -171,8 +171,9 @@ async function handleFormSubmit(e) {
         closeModal('modalLoading');
         cleanupGame();
         
-        // Mantemos um modal caso falhe completamente após as tentativas
-        openModal('modalCpfNaoEncontrado');
+        // Se falhar por timeout ou erro do servidor, mostra o modal de tentar novamente com mensagem genérica
+        document.getElementById('textoTimeout').innerText = "Desculpe! O sistema está com uma alta demanda ou demorando muito para responder no momento. Por favor, tente novamente!";
+        openModal('modalTimeout');
     }
 }
 
@@ -200,10 +201,13 @@ function handleRobotResponse(data) {
     if (data.status === 'erro') {
         if (data.message && data.message.includes('não possui senha')) {
             openModal('modalSemSenha');
-        } else if (data.message && (data.message.toLowerCase().includes('encontrado') || data.message.toLowerCase().includes('existe'))) {
+        } else if (data.message && (data.message.toLowerCase().includes('encontra') || data.message.toLowerCase().includes('existe'))) {
             openModal('modalCpfNaoEncontrado');
+        } else if (data.message && data.message.toLowerCase().includes('falha ao acessar')) {
+            document.getElementById('textoTimeout').innerText = `Desculpe, ${nome}! O sistema está com uma alta demanda ou demorando muito para responder no momento. Por favor, tente novamente!`;
+            openModal('modalTimeout');
         } else {
-            openModal('modalCpfNaoEncontrado'); // Fallback to not found for any other error to be safe
+            alert("⚠️ Instabilidade no sistema Sponte. Tente novamente mais tarde: " + data.message);
         }
     } else if (data.status === 'negociar') {
         document.getElementById('tituloNegociar').innerHTML = `Atenção, <strong>${nome}</strong>`;
@@ -217,16 +221,29 @@ function handleRobotResponse(data) {
         currentProximoBoleto = data.proximoBoleto;
         
         const btnProximo = document.getElementById('btnQueroPagarProximo');
-        if (currentProximoBoleto && currentProximoBoleto.linhaDigitavel) {
-            document.getElementById('textoEmDia').innerText += ` Caso queira, você consegue pagar o próximo boleto e garantir o nosso desconto de pontualidade.`;
+        if (currentProximoBoleto) {
+            document.getElementById('textoEmDia').innerText += ` Encontramos a sua próxima parcela para ${currentProximoBoleto.dataVencimento}.`;
             btnProximo.style.display = 'flex';
-            btnProximo.onclick = () => {
-                showLinhaDigitavel(
-                    currentProximoBoleto.linhaDigitavel, 
-                    currentProximoBoleto.numParcela, 
-                    currentProximoBoleto.dataVencimento
-                );
-            };
+            
+            if (currentProximoBoleto.linhaDigitavel) {
+                btnProximo.innerText = "PAGAR PRÓXIMO BOLETO";
+                btnProximo.style.opacity = '1';
+                btnProximo.style.cursor = 'pointer';
+                btnProximo.onclick = () => {
+                    showLinhaDigitavel(
+                        currentProximoBoleto.linhaDigitavel, 
+                        currentProximoBoleto.numParcela, 
+                        currentProximoBoleto.dataVencimento
+                    );
+                };
+            } else {
+                btnProximo.innerText = "BOLETO AINDA NÃO LIBERADO PELA ESCOLA";
+                btnProximo.style.opacity = '0.6';
+                btnProximo.style.cursor = 'not-allowed';
+                btnProximo.onclick = () => {
+                    alert("A linha digitável deste boleto ainda não foi liberada pelo sistema da Sponte. Tente novamente mais próximo ao vencimento.");
+                };
+            }
         } else {
             btnProximo.style.display = 'none'; // Se não tiver próximos boletos
         }
@@ -240,7 +257,8 @@ function handleRobotResponse(data) {
     } else {
         // Fallback de segurança caso a API retorne algo inesperado ou Error in workflow
         if (data.message && data.message.includes('Error in workflow')) {
-            alert("⚠️ O sistema demorou muito para responder ou está instável no momento. Por favor, tente consultar novamente em alguns instantes.");
+            document.getElementById('textoTimeout').innerText = "Desculpe! O sistema está com uma alta demanda ou demorando muito para responder no momento. Por favor, tente novamente!";
+            openModal('modalTimeout');
         } else {
             alert("⚠️ Erro desconhecido ao processar o retorno. Tente novamente mais tarde.");
         }
