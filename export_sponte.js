@@ -85,6 +85,39 @@ async function exportarRelatorio(webhookUrl) {
         console.log("Navegando para Contas a Receber...");
         await page.goto('https://www.sponteweb.com.br/SPRel/Financeiro/ContasReceber.aspx', { waitUntil: 'networkidle2', timeout: 60000 });
 
+        // ===== Selecionar (Todas) as empresas (CIA + CIA KIDS) para o relatorio completo =====
+        console.log("Selecionando (Todas) as empresas...");
+        try {
+            const jaTodas = await page.evaluate(() => {
+                const el = document.querySelector('#lblNomeEmpresa') || document.querySelector('#dropdownEmpresa');
+                return el ? /todas/i.test(el.innerText || '') : false;
+            });
+            if (!jaTodas) {
+                await page.click('#dropdownEmpresa').catch(() => {});
+                await new Promise(r => setTimeout(r, 1500));
+                const clicou = await page.evaluate(() => {
+                    const items = Array.from(document.querySelectorAll('a.trocaEmpresa, .trocaEmpresa'));
+                    const todas = items.find(a => (a.innerText || a.textContent || '').trim().toLowerCase().startsWith('(todas)'));
+                    if (todas) { todas.click(); return true; }
+                    return false;
+                });
+                if (clicou) {
+                    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+                    await new Promise(r => setTimeout(r, 3000));
+                    // Reabre o Contas a Receber ja com (Todas) ativo
+                    await page.goto('https://www.sponteweb.com.br/SPRel/Financeiro/ContasReceber.aspx', { waitUntil: 'networkidle2', timeout: 60000 });
+                    await new Promise(r => setTimeout(r, 2000));
+                    console.log("(Todas) as empresas selecionadas - relatorio cobre CIA + CIA KIDS.");
+                } else {
+                    console.log("ALERTA: nao encontrei a opcao (Todas) - seguindo com a empresa atual.");
+                }
+            } else {
+                console.log("Ja estava em (Todas).");
+            }
+        } catch (e) {
+            console.log("Aviso na selecao de empresa:", e.message);
+        }
+
         console.log("Aguardando carregamento completo do iframe/tela (procurando palavras-chave)...");
         let isScreenReady = false;
         let waitAttempts = 0;
