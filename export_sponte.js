@@ -26,8 +26,9 @@ async function exportarRelatorio(webhookUrl) {
     const oldFiles = fs.readdirSync(downloadPath);
     for (const file of oldFiles) fs.unlinkSync(path.join(downloadPath, file));
 
-    const browser = await puppeteer.launch({ 
+    const browser = await puppeteer.launch({
         headless: 'new',
+        protocolTimeout: 300000,
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox', 
@@ -330,19 +331,30 @@ async function exportarRelatorio(webhookUrl) {
     }
 }
 
+let exportEmAndamento = false;
+
 async function runWithRetries(webhookUrl) {
-    let retries = 0;
-    while (retries < 3) {
-        try {
-            await exportarRelatorio(webhookUrl);
-            return; 
-        } catch(e) {
-            retries++;
-            console.log(`Tentativa ${retries} falhou.`);
-            if (retries < 3) {
-                await new Promise(r => setTimeout(r, 10000));
+    if (exportEmAndamento) {
+        console.log('Export ja em andamento - disparo duplicado ignorado (evita concorrencia de browsers).');
+        return;
+    }
+    exportEmAndamento = true;
+    try {
+        let retries = 0;
+        while (retries < 3) {
+            try {
+                await exportarRelatorio(webhookUrl);
+                return;
+            } catch(e) {
+                retries++;
+                console.log(`Tentativa ${retries} falhou.`);
+                if (retries < 3) {
+                    await new Promise(r => setTimeout(r, 10000));
+                }
             }
         }
+    } finally {
+        exportEmAndamento = false;
     }
 }
 
