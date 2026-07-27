@@ -53,6 +53,15 @@ app.get('/extrair-boleto', async (req, res) => {
             });
             
             await page.goto(`https://portal.sponteweb.com.br/SelecionaLogin.aspx?cid=${cid}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+            // Fail-fast: unidades sem Portal do Aluno (ex.: CIA KIDS / cid de grupo) redirecionam
+            // para SelecionaEmpresas e NÃO têm o campo #txtLogin. Não adianta retentar 5x.
+            const temCampoLogin = await page.$('#txtLogin');
+            if (!temCampoLogin) {
+                await browser.close();
+                return res.status(200).json({ status: 'erro', code: 'sem_portal_aluno', message: 'A consulta ao vivo não está disponível para esta unidade no momento. Seus boletos podem estar na conta do responsável — fale com a secretaria se precisar.' });
+            }
+
             await page.type('#txtLogin', login);
             await page.type('#txtSenha', senha);
             
