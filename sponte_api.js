@@ -142,7 +142,7 @@ app.get('/extrair-boleto', async (req, res) => {
             }
             
             // Extrai todas as parcelas da tabela
-            const parcelas = await page.evaluate(() => {
+            let parcelas = await page.evaluate(() => {
                 const allRows = Array.from(document.querySelectorAll('#ctl00_ContentPlaceHolder1_grdFinanceiro tr.odd, #ctl00_ContentPlaceHolder1_grdFinanceiro tr.even'));
                 
                 return allRows.map((row, index) => {

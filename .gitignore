@@ -1,0 +1,18 @@
+# === Segredos (NUNCA versionar) ===
+.env
+.env.*
+*.env
+
+# Exports de workflow do n8n — podem conter chaves (service_role) em texto puro
+*Busca de Boletos*.json
+*[[]PROD[]]*.json
+
+# Artefatos de execução do robô
+downloads/
+UPLOAD/
+*.xls
+*.xlsx
+
+# Node
+node_modules/
+npm-debug.log*
