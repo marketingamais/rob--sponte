@@ -7,19 +7,23 @@ app.use(express.json());
 
 app.get('/ping', (req, res) => res.send('pong'));
 
-const { runWithRetries } = require('./export_sponte.js');
+// Commit em producao (a Render define RENDER_GIT_COMMIT) - usado para confirmar deploy
+app.get('/versao', (req, res) => res.json({ commit: process.env.RENDER_GIT_COMMIT || 'local' }));
+
+const { runWithRetries, CACHE_WEBHOOK_PADRAO } = require('./export_sponte.js');
 
 app.post('/iniciar-exportacao', (req, res) => {
     const webhookUrl = req.body.webhookUrl || req.query.webhookUrl;
     if (!webhookUrl) {
         return res.status(400).json({ error: 'É necessário fornecer a webhookUrl no corpo (JSON) ou query params.' });
     }
-    
+    const cacheWebhookUrl = (req.body && req.body.cacheWebhookUrl) || CACHE_WEBHOOK_PADRAO;
+
     // Responde imediatamente
-    res.json({ status: 'Processo de exportação iniciado em background!', webhookUrl });
-    
+    res.json({ status: 'Processo de exportação iniciado em background!', webhookUrl, cacheWebhookUrl });
+
     // Roda o Puppeteer em segundo plano
-    runWithRetries(webhookUrl).catch(e => console.error('Erro geral no robô:', e));
+    runWithRetries(webhookUrl, cacheWebhookUrl).catch(e => console.error('Erro geral no robô:', e));
 });
 
 app.get('/extrair-boleto', async (req, res) => {

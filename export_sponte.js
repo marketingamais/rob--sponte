@@ -3,6 +3,43 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const FormData = require('form-data');
+const { lerPlanilha, montarCache, hojeSaoPaulo, ehAberto } = require('./processar_planilha.js');
+
+const CACHE_WEBHOOK_PADRAO = 'https://n8n.amais.io/webhook/sponte-cache-processado';
+
+// Processa a planilha baixada e envia: 1) lote de cache (JSON) 2) arquivo bruto (arquivo no Drive).
+// O cache vai primeiro: se ele falhar, o erro sobe e o retry do export roda de novo.
+async function enviarResultados(filePath, urls, deps = {}) {
+    const post = deps.post || axios.post;
+    const ler = deps.lerPlanilha || lerPlanilha;
+    const agora = deps.agora ? deps.agora() : new Date();
+    const linhas = ler(filePath);
+    const payload = montarCache(linhas, hojeSaoPaulo(agora), agora.toISOString());
+    const totalPendentes = linhas.filter(ehAberto).length;
+    console.log(`Planilha processada: ${linhas.length} linhas, ${totalPendentes} pendentes, ${payload.length} CPFs.`);
+
+    if (urls.cacheWebhookUrl) {
+        console.log(`Enviando lote de cache para ${urls.cacheWebhookUrl}...`);
+        await post(urls.cacheWebhookUrl, {
+            geradoEm: agora.toISOString(),
+            totalLinhas: linhas.length,
+            totalPendentes,
+            filtroSituacaoAplicado: !!(deps.meta && deps.meta.filtroSituacaoAplicado),
+            payload
+        }, { timeout: 120000, maxBodyLength: Infinity, maxContentLength: Infinity });
+        console.log('Lote de cache enviado!');
+    }
+
+    if (urls.webhookUrl) {
+        console.log(`Enviando arquivo para o N8N (${urls.webhookUrl})...`);
+        const form = new FormData();
+        form.append('arquivo', fs.createReadStream(filePath));
+        await post(urls.webhookUrl, form, { headers: { ...form.getHeaders() }, maxBodyLength: Infinity, maxContentLength: Infinity });
+        console.log('Arquivo enviado com sucesso para o N8N!');
+    }
+
+    return { totalLinhas: linhas.length, totalPendentes, cpfs: payload.length };
+}
 
 function getLastDayOfNextMonth() {
     const today = new Date();
@@ -18,7 +55,7 @@ function formatDateBR(date) {
     return `${dd}/${mm}/${yyyy}`;
 }
 
-async function exportarRelatorio(webhookUrl) {
+async function baixarRelatorio() {
     console.log("Iniciando rotina de exportação da Sponte...");
     const downloadPath = path.resolve(__dirname, 'downloads');
     if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
@@ -144,7 +181,8 @@ async function exportarRelatorio(webhookUrl) {
         }
 
         const currentYear = new Date().getFullYear();
-        const startDateStr = `01/01/${currentYear}`;
+        // Ano anterior inteiro: pega boleto pendente antigo (o filtro de situacao deixa o arquivo pequeno)
+        const startDateStr = `01/01/${currentYear - 1}`;
         const endDateStr = formatDateBR(getLastDayOfNextMonth());
         
         console.log(`Período configurado: ${startDateStr} até ${endDateStr}`);
@@ -180,6 +218,40 @@ async function exportarRelatorio(webhookUrl) {
                 }
             }, startDateStr, endDateStr);
         }
+
+        console.log("Aplicando filtro de situacao (so Pendente/Em aberto)...");
+        let filtroSituacaoAplicado = false;
+        for (const frame of page.frames()) {
+            const ok = await frame.evaluate(() => {
+                const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+                const abertos = ['pendente', 'em aberto', 'aberto', 'a receber'];
+                const fechados = ['quitada', 'quitado', 'cancelada', 'cancelado', 'pago', 'paga', 'recebido', 'recebida'];
+                let aplicou = false;
+                // 1) Select de situacao
+                for (const sel of document.querySelectorAll('select')) {
+                    const ctx = norm(sel.id + ' ' + sel.name + ' ' + (sel.parentElement ? sel.parentElement.textContent : ''));
+                    if (!ctx.includes('situa')) continue;
+                    const i = Array.from(sel.options).findIndex(o => abertos.includes(norm(o.text)));
+                    if (i !== -1) {
+                        sel.selectedIndex = i;
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                        aplicou = true;
+                    }
+                }
+                // 2) Checkboxes rotuladas
+                for (const chk of document.querySelectorAll('input[type="checkbox"]')) {
+                    const lbl = chk.id ? document.querySelector(`label[for="${chk.id}"]`) : null;
+                    const txt = norm((lbl ? lbl.textContent : '') || (chk.nextSibling && chk.nextSibling.textContent) || (chk.parentElement ? chk.parentElement.textContent : ''));
+                    if (fechados.includes(txt) && chk.checked) { chk.click(); aplicou = true; }
+                    if (abertos.includes(txt) && !chk.checked) { chk.click(); aplicou = true; }
+                }
+                return aplicou;
+            }).catch(() => false);
+            if (ok) filtroSituacaoAplicado = true;
+        }
+        console.log(filtroSituacaoAplicado
+            ? "Filtro de situacao aplicado."
+            : "ALERTA: filtro de situacao nao encontrado na tela; seguindo com todas as situacoes (o robo filtra depois).");
 
         console.log("Configurando exportação para Excel...");
         let formatChanged = false;
@@ -332,41 +404,31 @@ async function exportarRelatorio(webhookUrl) {
         }
 
         console.log(`Download concluído! Arquivo: ${filePath}`);
-        
-        if (webhookUrl) {
-            console.log(`Enviando para o N8N (${webhookUrl})...`);
-            const form = new FormData();
-            form.append('arquivo', fs.createReadStream(filePath));
-            
-            await axios.post(webhookUrl, form, {
-                headers: {
-                    ...form.getHeaders()
-                }
-            });
-            console.log("Arquivo enviado com sucesso para o N8N!");
-        }
 
-        return { success: true, message: 'Exportação concluída!' };
+        return { filePath, filtroSituacaoAplicado };
 
-    } catch (e) {
-        console.error("Erro durante a automação:", e);
-        if (webhookUrl) {
-            try {
-                await axios.post(webhookUrl, {
-                    error: true,
-                    message: e.toString()
-                });
-            } catch(err) {}
-        }
-        throw e;
     } finally {
         await browser.close();
     }
 }
 
+async function exportarRelatorio(webhookUrl, cacheWebhookUrl) {
+    try {
+        const { filePath, filtroSituacaoAplicado } = await baixarRelatorio(); // browser ja fechado aqui (libera RAM)
+        const r = await enviarResultados(filePath, { webhookUrl, cacheWebhookUrl }, { meta: { filtroSituacaoAplicado } });
+        return { success: true, message: 'Exportação concluída!', ...r };
+    } catch (e) {
+        console.error('Erro durante a automação:', e);
+        if (webhookUrl) {
+            try { await axios.post(webhookUrl, { error: true, message: e.toString() }); } catch (err) {}
+        }
+        throw e;
+    }
+}
+
 let exportEmAndamento = false;
 
-async function runWithRetries(webhookUrl) {
+async function runWithRetries(webhookUrl, cacheWebhookUrl) {
     if (exportEmAndamento) {
         console.log('Export ja em andamento - disparo duplicado ignorado (evita concorrencia de browsers).');
         return;
@@ -376,7 +438,7 @@ async function runWithRetries(webhookUrl) {
         let retries = 0;
         while (retries < 3) {
             try {
-                await exportarRelatorio(webhookUrl);
+                await exportarRelatorio(webhookUrl, cacheWebhookUrl);
                 return;
             } catch(e) {
                 retries++;
@@ -391,4 +453,4 @@ async function runWithRetries(webhookUrl) {
     }
 }
 
-module.exports = { runWithRetries };
+module.exports = { runWithRetries, enviarResultados, CACHE_WEBHOOK_PADRAO };
