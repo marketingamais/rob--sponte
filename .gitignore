@@ -16,3 +16,8 @@ UPLOAD/
 # Node
 node_modules/
 npm-debug.log*
+
+# Backups locais de workflow n8n (contem chaves)
+backups/
+
+.superpowers/
