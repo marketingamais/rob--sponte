@@ -5,12 +5,42 @@ const axios = require('axios');
 const FormData = require('form-data');
 const { lerPlanilha, montarCache, hojeSaoPaulo, ehAberto } = require('./processar_planilha.js');
 
-const CACHE_WEBHOOK_PADRAO = 'https://n8n.amais.io/webhook/sponte-cache-processado';
+const PREFIXO_WEBHOOK_PERMITIDO = 'https://n8n.amais.io/webhook/';
+function urlPermitida(u) {
+    return typeof u === 'string' && u.startsWith(PREFIXO_WEBHOOK_PERMITIDO);
+}
+
+// Faz o POST do lote de cache com ate 3 tentativas (espera 10s entre elas).
+// So reexporta em caso de erro de rede (sem resposta) ou HTTP >= 500 cujo corpo
+// NAO contenha "Lote rejeitado" (rejeicao de negocio - reexportar nao ajuda).
+async function postCacheComRetry(post, url, body, options, esperar) {
+    const maxTentativas = 3;
+    for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
+        try {
+            return await post(url, body, options);
+        } catch (err) {
+            const status = err.response && err.response.status;
+            const bodyTxt = (err.response && err.response.data)
+                ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data))
+                : '';
+            const retryable = !err.response || (status >= 500 && !bodyTxt.includes('Lote rejeitado'));
+            if (!retryable || tentativa === maxTentativas) {
+                const statusTxt = status !== undefined ? status : 'sem resposta (erro de rede)';
+                const erroFinal = new Error(`Falha ao enviar lote de cache (status ${statusTxt}): ${err.message}`);
+                erroFinal.naoReexportar = true;
+                throw erroFinal;
+            }
+            await esperar(10000);
+        }
+    }
+}
 
 // Processa a planilha baixada e envia: 1) lote de cache (JSON) 2) arquivo bruto (arquivo no Drive).
-// O cache vai primeiro: se ele falhar, o erro sobe e o retry do export roda de novo.
+// O cache vai primeiro, com retry proprio; se esgotar as tentativas o erro sobe com naoReexportar=true.
+// O envio do arquivo NAO e fatal: falha nele so gera um aviso (o cache ja foi gravado).
 async function enviarResultados(filePath, urls, deps = {}) {
     const post = deps.post || axios.post;
+    const esperar = deps.esperar || (ms => new Promise(r => setTimeout(r, ms)));
     const ler = deps.lerPlanilha || lerPlanilha;
     const agora = deps.agora ? deps.agora() : new Date();
     const linhas = ler(filePath);
@@ -20,22 +50,26 @@ async function enviarResultados(filePath, urls, deps = {}) {
 
     if (urls.cacheWebhookUrl) {
         console.log(`Enviando lote de cache para ${urls.cacheWebhookUrl}...`);
-        await post(urls.cacheWebhookUrl, {
+        await postCacheComRetry(post, urls.cacheWebhookUrl, {
             geradoEm: agora.toISOString(),
             totalLinhas: linhas.length,
             totalPendentes,
             filtroSituacaoAplicado: !!(deps.meta && deps.meta.filtroSituacaoAplicado),
             payload
-        }, { timeout: 120000, maxBodyLength: Infinity, maxContentLength: Infinity });
+        }, { timeout: 120000, maxBodyLength: Infinity, maxContentLength: Infinity }, esperar);
         console.log('Lote de cache enviado!');
     }
 
     if (urls.webhookUrl) {
         console.log(`Enviando arquivo para o N8N (${urls.webhookUrl})...`);
-        const form = new FormData();
-        form.append('arquivo', fs.createReadStream(filePath));
-        await post(urls.webhookUrl, form, { headers: { ...form.getHeaders() }, maxBodyLength: Infinity, maxContentLength: Infinity });
-        console.log('Arquivo enviado com sucesso para o N8N!');
+        try {
+            const form = new FormData();
+            form.append('arquivo', fs.createReadStream(filePath));
+            await post(urls.webhookUrl, form, { headers: { ...form.getHeaders() }, maxBodyLength: Infinity, maxContentLength: Infinity });
+            console.log('Arquivo enviado com sucesso para o N8N!');
+        } catch (e) {
+            console.warn('Aviso: falha ao enviar arquivo ao Drive (cache ja foi gravado):', e.message);
+        }
     }
 
     return { totalLinhas: linhas.length, totalPendentes, cpfs: payload.length };
@@ -180,45 +214,6 @@ async function baixarRelatorio() {
             console.log("Tela e iframes renderizados com sucesso!");
         }
 
-        const currentYear = new Date().getFullYear();
-        // Ano anterior inteiro: pega boleto pendente antigo (o filtro de situacao deixa o arquivo pequeno)
-        const startDateStr = `01/01/${currentYear - 1}`;
-        const endDateStr = formatDateBR(getLastDayOfNextMonth());
-        
-        console.log(`Período configurado: ${startDateStr} até ${endDateStr}`);
-        
-        for (const frame of page.frames()) {
-            await frame.evaluate((start, end) => {
-                const inputs = Array.from(document.querySelectorAll('input[type="text"], input[type="date"], input[type="tel"]'));
-                
-                // Encontrar os inputs de Vencimento
-                let ini = inputs.find(inp => {
-                    const str = (inp.id + inp.name).toLowerCase();
-                    return str.includes('vencimento') && (str.includes('ini') || str.includes('de'));
-                });
-                let fim = inputs.find(inp => {
-                    const str = (inp.id + inp.name).toLowerCase();
-                    return str.includes('vencimento') && (str.includes('fim') || str.includes('ate'));
-                });
-
-                if (ini && fim) {
-                    ini.value = start;
-                    fim.value = end;
-                } else {
-                    // Fallback: Se não achar pelos sufixos (ini/fim), tenta pegar os dois primeiros 
-                    // inputs de data que aparecem na tela (que visualmente são os de Vencimento)
-                    const dateInputs = inputs.filter(inp => {
-                        const str = (inp.id + inp.name).toLowerCase();
-                        return str.includes('vencimento') || str.includes('data');
-                    });
-                    if (dateInputs.length >= 2) {
-                        dateInputs[0].value = start;
-                        dateInputs[1].value = end;
-                    }
-                }
-            }, startDateStr, endDateStr);
-        }
-
         console.log("Aplicando filtro de situacao (so Pendente/Em aberto)...");
         let filtroSituacaoAplicado = false;
         for (const frame of page.frames()) {
@@ -272,6 +267,56 @@ async function baixarRelatorio() {
         console.log(filtroSituacaoAplicado
             ? "Filtro de situacao aplicado."
             : "ALERTA: filtro de situacao nao encontrado na tela; seguindo com todas as situacoes (o robo filtra depois).");
+
+        if (filtroSituacaoAplicado) {
+            // O filtro de situacao dispara postback (WebForms) na Sponte - espera a rede
+            // assentar antes de mexer em outros campos, senao o contexto do frame pode
+            // ser destruido no meio do caminho (ex.: reload parcial da tela).
+            console.log("Aguardando a Sponte processar o postback do filtro de situacao...");
+            await page.waitForNetworkIdle({ idleTime: 1000, timeout: 30000 }).catch(() => {});
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        const currentYear = new Date().getFullYear();
+        // Com o filtro de situacao aplicado (so pendente/em aberto) o arquivo fica pequeno
+        // mesmo olhando 1 ano pra tras (pega boleto pendente antigo). Sem o filtro, usa a
+        // janela menor - o mesmo comportamento de antes desta branch, que cabe na memoria.
+        const startDateStr = filtroSituacaoAplicado ? `01/01/${currentYear - 1}` : `01/01/${currentYear}`;
+        const endDateStr = formatDateBR(getLastDayOfNextMonth());
+
+        console.log(`Período configurado: ${startDateStr} até ${endDateStr} (janela ${filtroSituacaoAplicado ? 'ampliada - filtro de situacao aplicado' : 'padrao - sem filtro de situacao'})`);
+
+        for (const frame of page.frames()) {
+            await frame.evaluate((start, end) => {
+                const inputs = Array.from(document.querySelectorAll('input[type="text"], input[type="date"], input[type="tel"]'));
+
+                // Encontrar os inputs de Vencimento
+                let ini = inputs.find(inp => {
+                    const str = (inp.id + inp.name).toLowerCase();
+                    return str.includes('vencimento') && (str.includes('ini') || str.includes('de'));
+                });
+                let fim = inputs.find(inp => {
+                    const str = (inp.id + inp.name).toLowerCase();
+                    return str.includes('vencimento') && (str.includes('fim') || str.includes('ate'));
+                });
+
+                if (ini && fim) {
+                    ini.value = start;
+                    fim.value = end;
+                } else {
+                    // Fallback: Se não achar pelos sufixos (ini/fim), tenta pegar os dois primeiros
+                    // inputs de data que aparecem na tela (que visualmente são os de Vencimento)
+                    const dateInputs = inputs.filter(inp => {
+                        const str = (inp.id + inp.name).toLowerCase();
+                        return str.includes('vencimento') || str.includes('data');
+                    });
+                    if (dateInputs.length >= 2) {
+                        dateInputs[0].value = start;
+                        dateInputs[1].value = end;
+                    }
+                }
+            }, startDateStr, endDateStr);
+        }
 
         console.log("Configurando exportação para Excel...");
         let formatChanged = false;
@@ -357,7 +402,7 @@ async function baixarRelatorio() {
                     }
                 }
                 return localChanged;
-            });
+            }).catch(() => false); // contexto do frame pode ser destruido pelo postback do filtro; nao aborta o export
             if (changed) formatChanged = true;
         }
 
@@ -454,6 +499,14 @@ async function runWithRetries(webhookUrl, cacheWebhookUrl) {
         return;
     }
     exportEmAndamento = true;
+    // Mantem o serviço acordado na Render enquanto o export roda (evita o free tier
+    // suspender a instancia no meio de uma exportação longa).
+    let pingInterval = null;
+    if (process.env.RENDER_EXTERNAL_URL) {
+        pingInterval = setInterval(() => {
+            axios.get(process.env.RENDER_EXTERNAL_URL + '/ping').catch(() => {});
+        }, 4 * 60 * 1000);
+    }
     try {
         let retries = 0;
         while (retries < 3) {
@@ -463,14 +516,19 @@ async function runWithRetries(webhookUrl, cacheWebhookUrl) {
             } catch(e) {
                 retries++;
                 console.log(`Tentativa ${retries} falhou.`);
+                if (e && e.naoReexportar) {
+                    console.log('Erro nao-reexportavel (ex.: lote de cache rejeitado) - nao repetindo o export.');
+                    return;
+                }
                 if (retries < 3) {
                     await new Promise(r => setTimeout(r, 10000));
                 }
             }
         }
     } finally {
+        if (pingInterval) clearInterval(pingInterval);
         exportEmAndamento = false;
     }
 }
 
-module.exports = { runWithRetries, enviarResultados, CACHE_WEBHOOK_PADRAO };
+module.exports = { runWithRetries, enviarResultados, urlPermitida };

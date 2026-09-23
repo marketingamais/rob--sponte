@@ -35,14 +35,20 @@ test('envia o lote de cache ANTES do arquivo, com metadados', async () => {
     assert.deepStrictEqual(r, { totalLinhas: 2, totalPendentes: 1, cpfs: 1 });
 });
 
-test('falha no envio do cache propaga e NAO envia o arquivo', async () => {
+test('falha no envio do cache (erro de rede) esgota as 3 tentativas e NAO envia o arquivo', async () => {
     const urls = [];
-    const post = async (url) => { urls.push(url); if (url.includes('cache')) throw new Error('500'); };
+    const post = async (url) => { urls.push(url); if (url.includes('cache')) throw new Error('network fail'); };
+    const esperas = [];
+    const esperar = async (ms) => { esperas.push(ms); };
     const f = arquivoTemp();
-    await assert.rejects(enviarResultados(f, { webhookUrl: 'http://n8n/arquivo', cacheWebhookUrl: 'http://n8n/cache' },
-        { post, lerPlanilha: linhasFake }), /500/);
+    await assert.rejects(
+        enviarResultados(f, { webhookUrl: 'http://n8n/arquivo', cacheWebhookUrl: 'http://n8n/cache' },
+            { post, lerPlanilha: linhasFake, esperar }),
+        (err) => { assert.strictEqual(err.naoReexportar, true); return true; }
+    );
     fs.unlinkSync(f);
-    assert.deepStrictEqual(urls, ['http://n8n/cache']);
+    assert.deepStrictEqual(urls, ['http://n8n/cache', 'http://n8n/cache', 'http://n8n/cache']);
+    assert.deepStrictEqual(esperas, [10000, 10000]);
 });
 
 test('sem cacheWebhookUrl envia so o arquivo', async () => {
@@ -52,4 +58,63 @@ test('sem cacheWebhookUrl envia so o arquivo', async () => {
     await enviarResultados(f, { webhookUrl: 'http://n8n/arquivo' }, { post, lerPlanilha: linhasFake });
     fs.unlinkSync(f);
     assert.deepStrictEqual(urls, ['http://n8n/arquivo']);
+});
+
+test('cache falha 2x com erro de rede e depois funciona (retry), depois envia arquivo', async () => {
+    const chamadas = [];
+    let tentativasCache = 0;
+    const post = async (url) => {
+        chamadas.push(url);
+        if (url.includes('cache')) {
+            tentativasCache++;
+            if (tentativasCache < 3) throw new Error('network fail');
+            return { status: 200 };
+        }
+        return { status: 200 };
+    };
+    const esperas = [];
+    const esperar = async (ms) => { esperas.push(ms); };
+    const f = arquivoTemp();
+    const r = await enviarResultados(f, { webhookUrl: 'http://n8n/arquivo', cacheWebhookUrl: 'http://n8n/cache' },
+        { post, lerPlanilha: linhasFake, esperar });
+    fs.unlinkSync(f);
+    assert.deepStrictEqual(chamadas, ['http://n8n/cache', 'http://n8n/cache', 'http://n8n/cache', 'http://n8n/arquivo']);
+    assert.deepStrictEqual(esperas, [10000, 10000]);
+    assert.strictEqual(r.totalLinhas, 2);
+});
+
+test('cache retorna 500 com "Lote rejeitado" no corpo -> nao reexporta, 1 tentativa so', async () => {
+    const chamadas = [];
+    const post = async (url) => {
+        chamadas.push(url);
+        const e = new Error('Request failed with status code 500');
+        e.response = { status: 500, data: { message: 'Lote rejeitado: dados invalidos' } };
+        throw e;
+    };
+    const esperas = [];
+    const esperar = async (ms) => { esperas.push(ms); };
+    const f = arquivoTemp();
+    await assert.rejects(
+        enviarResultados(f, { webhookUrl: 'http://n8n/arquivo', cacheWebhookUrl: 'http://n8n/cache' },
+            { post, lerPlanilha: linhasFake, esperar }),
+        (err) => { assert.strictEqual(err.naoReexportar, true); return true; }
+    );
+    fs.unlinkSync(f);
+    assert.deepStrictEqual(chamadas, ['http://n8n/cache']);
+    assert.deepStrictEqual(esperas, []);
+});
+
+test('falha ao enviar o arquivo (Drive) nao e fatal - resolve mesmo assim', async () => {
+    const chamadas = [];
+    const post = async (url) => {
+        chamadas.push(url);
+        if (url.includes('arquivo')) throw new Error('drive down');
+        return { status: 200 };
+    };
+    const f = arquivoTemp();
+    const r = await enviarResultados(f, { webhookUrl: 'http://n8n/arquivo', cacheWebhookUrl: 'http://n8n/cache' },
+        { post, lerPlanilha: linhasFake });
+    fs.unlinkSync(f);
+    assert.deepStrictEqual(chamadas, ['http://n8n/cache', 'http://n8n/arquivo']);
+    assert.strictEqual(r.totalLinhas, 2);
 });

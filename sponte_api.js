@@ -10,14 +10,20 @@ app.get('/ping', (req, res) => res.send('pong'));
 // Commit em producao (a Render define RENDER_GIT_COMMIT) - usado para confirmar deploy
 app.get('/versao', (req, res) => res.json({ commit: process.env.RENDER_GIT_COMMIT || 'local' }));
 
-const { runWithRetries, CACHE_WEBHOOK_PADRAO } = require('./export_sponte.js');
+const { runWithRetries, urlPermitida } = require('./export_sponte.js');
 
 app.post('/iniciar-exportacao', (req, res) => {
     const webhookUrl = req.body.webhookUrl || req.query.webhookUrl;
     if (!webhookUrl) {
         return res.status(400).json({ error: 'É necessário fornecer a webhookUrl no corpo (JSON) ou query params.' });
     }
-    const cacheWebhookUrl = (req.body && req.body.cacheWebhookUrl) || CACHE_WEBHOOK_PADRAO;
+    if (!urlPermitida(webhookUrl)) {
+        return res.status(400).json({ error: 'webhookUrl nao permitida' });
+    }
+    const cacheWebhookUrl = req.body && req.body.cacheWebhookUrl;
+    if (cacheWebhookUrl && !urlPermitida(cacheWebhookUrl)) {
+        return res.status(400).json({ error: 'cacheWebhookUrl nao permitida' });
+    }
 
     // Responde imediatamente
     res.json({ status: 'Processo de exportação iniciado em background!', webhookUrl, cacheWebhookUrl });
@@ -26,11 +32,20 @@ app.post('/iniciar-exportacao', (req, res) => {
     runWithRetries(webhookUrl, cacheWebhookUrl).catch(e => console.error('Erro geral no robô:', e));
 });
 
+let emAndamento = 0;
+const MAX_SIMULTANEOS = 2;
+
 app.get('/extrair-boleto', async (req, res) => {
     const { cid, login, senha } = req.query;
     if (!cid || !login || !senha) {
         return res.status(200).json({ status: 'erro', message: 'Este aluno não possui senha cadastrada no Portal da Sponte para que possamos consultar os boletos.' });
     }
+
+    if (emAndamento >= MAX_SIMULTANEOS) {
+        return res.status(503).json({ status: 'erro', code: 'ocupado', message: 'Robo ocupado, tente novamente.' });
+    }
+    emAndamento++;
+    try {
 
     const maxTentativas = 5;
     let ultimoErro = null;
@@ -336,6 +351,9 @@ app.get('/extrair-boleto', async (req, res) => {
             console.log("Iniciando nova tentativa...");
             await new Promise(r => setTimeout(r, 2000));
         }
+    }
+    } finally {
+        emAndamento--;
     }
 });
 
