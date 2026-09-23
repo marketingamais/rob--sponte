@@ -222,11 +222,12 @@ async function baixarRelatorio() {
         console.log("Aplicando filtro de situacao (so Pendente/Em aberto)...");
         let filtroSituacaoAplicado = false;
         for (const frame of page.frames()) {
-            const ok = await frame.evaluate(() => {
+            const r = await frame.evaluate(() => {
                 const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
                 const abertos = ['pendente', 'em aberto', 'aberto', 'a receber'];
                 const fechados = ['quitada', 'quitado', 'cancelada', 'cancelado', 'pago', 'paga', 'recebido', 'recebida'];
                 let aplicou = false;
+                const acoes = [];
                 // 1) Select de situacao
                 for (const sel of document.querySelectorAll('select')) {
                     const ctx = norm(sel.id + ' ' + sel.name + ' ' + (sel.parentElement ? sel.parentElement.textContent : ''));
@@ -236,18 +237,37 @@ async function baixarRelatorio() {
                         sel.selectedIndex = i;
                         sel.dispatchEvent(new Event('change', { bubbles: true }));
                         aplicou = true;
+                        acoes.push(`select ${sel.id || sel.name || '(sem id)'} -> ${(sel.options[i].text || '').trim()}`);
                     }
                 }
-                // 2) Checkboxes rotuladas
+                // 2) Checkboxes rotuladas, mas SO dentro de um grupo claramente de "situacao"
+                // (ancestral proximo cujo texto contem "situa" e que tenha poucos checkboxes -
+                // assim nao mexemos em checkbox solto de outra secao da tela, ex.: um filtro qualquer)
+                const achaGrupoSituacao = (el) => {
+                    let node = el.parentElement;
+                    let niveis = 0;
+                    while (node && node !== document.body && niveis < 6) {
+                        const txt = norm(node.textContent);
+                        if (txt.includes('situa')) {
+                            const nChk = node.querySelectorAll('input[type="checkbox"]').length;
+                            if (nChk > 0 && nChk < 15) return node;
+                        }
+                        node = node.parentElement;
+                        niveis++;
+                    }
+                    return null;
+                };
                 for (const chk of document.querySelectorAll('input[type="checkbox"]')) {
+                    if (!achaGrupoSituacao(chk)) continue;
                     const lbl = chk.id ? document.querySelector(`label[for="${chk.id}"]`) : null;
                     const txt = norm((lbl ? lbl.textContent : '') || (chk.nextSibling && chk.nextSibling.textContent) || (chk.parentElement ? chk.parentElement.textContent : ''));
-                    if (fechados.includes(txt) && chk.checked) { chk.click(); aplicou = true; }
-                    if (abertos.includes(txt) && !chk.checked) { chk.click(); aplicou = true; }
+                    if (fechados.includes(txt) && chk.checked) { chk.click(); aplicou = true; acoes.push(`desmarcou "${txt}"`); }
+                    if (abertos.includes(txt) && !chk.checked) { chk.click(); aplicou = true; acoes.push(`marcou "${txt}"`); }
                 }
-                return aplicou;
-            }).catch(() => false);
-            if (ok) filtroSituacaoAplicado = true;
+                return { aplicou, acoes };
+            }).catch(() => ({ aplicou: false, acoes: [] }));
+            if (r.aplicou) filtroSituacaoAplicado = true;
+            if (r.acoes && r.acoes.length) console.log('Filtro de situacao - acoes:', r.acoes.join('; '));
         }
         console.log(filtroSituacaoAplicado
             ? "Filtro de situacao aplicado."
