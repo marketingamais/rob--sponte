@@ -50,7 +50,7 @@ Painel (/painel-f8ed7ba4777f/) ──POST painel-api {acao, ...} + Bearer──�
       ├─ login / refresh ──► Supabase Auth (/auth/v1/token)
       ├─ toda outra ação: valida token (GET /auth/v1/user) + papel em app_metadata
       ├─ dashboard ──► agrega cia_consultas_log + cia_ingestoes_log + saúde (robô /ping,/versao; idade do cache)
-      └─ usuarios.* (só super_admin) ──► Supabase Auth admin API + cia_admin_usuarios
+      └─ usuarios.* (só super_admin) ──► Supabase Auth admin API (app_metadata)
 ```
 
 ### 1. Log de consultas (n8n PROD `W7tTXjTNvvO62wYO`)
@@ -59,7 +59,7 @@ Painel (/painel-f8ed7ba4777f/) ──POST painel-api {acao, ...} + Bearer──�
 - `Validar CPF` grava `inicioMs: Date.now()`.
 - **`Registrar Consulta`** (Code) monta a linha a partir da resposta. Ele usa a função pura `classificarConsulta(resposta)` (ver abaixo) e grava:
   - `quando` (ISO), `resultado`, `tela`, `code`;
-  - `origem`: `cache` | `ao_vivo` | `cache_antigo` | `validacao`;
+  - `origem`: `cache` | `ao_vivo` | `cache_antigo` | `sem_dados` | `navegador`;
   - `duracao_ms`, `qtd_boletos`.
   Se for erro, também monta a linha da planilha com CPF, tela, erro, motivo e solução, via `motivoESolucao(code, detalhe)`.
 - Insere a linha em `cia_consultas_log` (Data Table). Se for erro, adiciona a linha na planilha. Os nós de log usam `onError: continueRegularOutput`: falha no log nunca afeta a consulta, porque a resposta já foi enviada.
@@ -134,7 +134,7 @@ Para separar os dois casos de `instabilidade`, `Responder Erro` passa a incluir 
 - CORS: `Access-Control-Allow-Origin: https://rob-sponte-2.vercel.app`, mais um webhook OPTIONS.
 - Um nó `Roteador` (Switch por `acao`). Toda ação, exceto `login` e `refresh`, passa antes por `Autenticar`:
   1. `GET /auth/v1/user` com o token do usuário;
-  2. busca o e-mail em `cia_admin_usuarios`;
+  2. lê `app_metadata` (`painel`, `papel`, `ativo`) e exige `painel = true`;
   3. exige `ativo = true`;
   4. anexa `{ email, nome, papel }`.
 
@@ -144,13 +144,13 @@ Para separar os dois casos de `instabilidade`, `Responder Erro` passa a incluir 
 
 | `acao` | Quem | Faz |
 |---|---|---|
-| `login` `{email, senha}` | todos | `POST /auth/v1/token?grant_type=password`. Se ok e ativo na tabela → `{ access_token, refresh_token, expires_at, usuario }`. Erro genérico "E-mail ou senha inválidos" (não revela se o e-mail existe). Usuário inativo → mesmo erro genérico. |
+| `login` `{email, senha}` | todos | `POST /auth/v1/token?grant_type=password`. Se ok e ativo (`app_metadata`) → `{ access_token, refresh_token, expires_at, usuario }`. Erro genérico "E-mail ou senha inválidos" (não revela se o e-mail existe). Usuário inativo → mesmo erro genérico. |
 | `refresh` `{refresh_token}` | todos | `grant_type=refresh_token`, mais o mesmo checagem de ativo |
 | `dashboard` `{de, ate}` | membro+ | ver §6 |
 | `trocar_senha` `{senha_nova}` | membro+ | `PUT /auth/v1/user` com o token do próprio usuário; mínimo 10 caracteres |
-| `usuarios_listar` | super_admin | linhas de `cia_admin_usuarios` |
-| `usuarios_criar` `{email, nome, papel, senha}` | super_admin | admin API `POST /auth/v1/admin/users` (`email_confirm: true`) e depois linha na tabela. Se o e-mail já existe no Auth, reaproveita e atualiza a senha. |
-| `usuarios_atualizar` `{email, nome?, papel?, ativo?}` | super_admin | atualiza a tabela; ao desativar, também faz `ban_duration: '876000h'` no Auth; ao reativar, `ban_duration: 'none'` |
+| `usuarios_listar` | super_admin | usuários do Auth com `app_metadata.painel = true` |
+| `usuarios_criar` `{email, nome, papel, senha}` | super_admin | admin API `POST /auth/v1/admin/users` (`email_confirm: true`, `app_metadata: {painel, papel, nome, ativo}`). Se o e-mail já existe no Auth → 400; nunca reaproveita conta existente. |
+| `usuarios_atualizar` `{email, nome?, papel?, ativo?}` | super_admin | atualiza `app_metadata`; ao desativar, também faz `ban_duration: '876000h'` no Auth; ao reativar, `ban_duration: 'none'` |
 | `usuarios_redefinir_senha` `{email, senha}` | super_admin | admin API `PUT /auth/v1/admin/users/{id}` |
 | `usuarios_remover` `{email}` | super_admin | apaga do Auth |
 
@@ -160,7 +160,7 @@ Para separar os dois casos de `instabilidade`, `Responder Erro` passa a incluir 
 - Papéis válidos: `super_admin` e `membro`.
 - Senha com no mínimo 10 caracteres.
 
-**Usuários do painel = usuários do Supabase Auth com `app_metadata.painel = true` (campos `papel`, `nome`, `ativo`). Não há tabela própria.
+Usuários do painel = usuários do Supabase Auth com `app_metadata.painel = true` (campos `papel`, `nome`, `ativo`). Não há tabela própria.
 
 ### 6. Dashboard (`acao: dashboard`)
 
