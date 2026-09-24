@@ -6,7 +6,7 @@ const bol = (linha) => ({ numParcela: '1', dataVencimento: '10/10/2026', valor: 
 
 test('debito: pagar_atrasados com linha', () => {
     const r = classificarConsulta({ status: 'pagar_atrasados', cache: true, alunos: [{ status: 'pagar_atrasados', boletos: [bol('123'), bol('456')] }] });
-    assert.deepStrictEqual(r, { resultado: 'debito', tela: 'Boletos vencidos', code: '', origem: 'cache', qtd_boletos: 2 });
+    assert.deepStrictEqual(r, { resultado: 'debito', tela: 'Boletos vencidos', code: '', origem: 'cache', qtd_boletos: 2, valor_debito: 359.98 });
 });
 
 test('atrasado sem linha liberada', () => {
@@ -82,4 +82,14 @@ test('linhaPlanilhaErro formata data em SP e CPF', () => {
 test('linhaPlanilhaErro com CPF vazio ou incompleto mantem o que veio', () => {
     assert.strictEqual(linhaPlanilhaErro({ quando: '2026-09-24T02:30:00.000Z', cpf: '123', tela: 'CPF inválido', code: 'cpf_invalido' })['CPF'], '123');
     assert.strictEqual(linhaPlanilhaErro({ quando: '2026-09-24T02:30:00.000Z', cpf: '', tela: 'x', code: 'x' })['CPF'], '');
+});
+
+test('classificarConsulta devolve valor_debito so das parcelas vencidas', () => {
+    const r = { status: 'pagar_atrasados', alunos: [
+        { status: 'pagar_atrasados', boletos: [{ valor: '100,00', linhaDigitavel: '1' }, { valor: '50,5000', linhaDigitavel: '2' }] },
+        { status: 'em_dia', boletos: [{ valor: '999,00', linhaDigitavel: '3' }] }] };
+    assert.strictEqual(classificarConsulta(r).valor_debito, 150.5);
+    assert.strictEqual(classificarConsulta({ status: 'em_dia', alunos: [{ status: 'em_dia', boletos: [{ valor: '10,00' }] }] }).valor_debito, 0);
+    assert.strictEqual(classificarConsulta({ status: 'pagar_atrasados', parcelas: [{ valor: '20,00', linhaDigitavel: 'x' }] }).valor_debito, 20);
+    assert.strictEqual(classificarConsulta({ status: 'erro', code: 'nao_encontrado' }).valor_debito, 0);
 });

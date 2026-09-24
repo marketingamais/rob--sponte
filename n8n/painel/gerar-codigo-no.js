@@ -3,12 +3,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const mod = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8').replace(/^module\.exports\s*=.*$/m, '').trim();
+const mod = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8')
+    .split('\n').filter(l => !l.includes('// @no-n8n')).join('\n')
+    .replace(/^module\.exports\s*=.*$/m, '').trim();
 
 const ADAPTADORES = {
     // Workflow de consulta: roda depois de "Responder ao Site". Entrada: a resposta enviada ao site.
-    'registrar-consulta': ['consulta_log.js'],
-    'registrar-evento-front': ['consulta_log.js'],
+    'registrar-consulta': ['valores.js', 'consulta_log.js'],
+    'registrar-evento-front': ['valores.js', 'consulta_log.js'],
     'montar-dashboard': ['dashboard.js'],
     'painel-api': ['usuarios.js']
 };
@@ -20,8 +22,9 @@ const inicio = $('Validar CPF').first().json.inicioMs;
 const cpf = String($('Validar CPF').first().json.cpf || '').replace(/\\D/g, '');
 const quando = new Date().toISOString();
 const c = classificarConsulta(resposta);
+const consultaId = String($('Validar CPF').first().json.consulta_id || '');
 const log = { quando, resultado: c.resultado, tela: c.tela, code: c.code, origem: c.origem,
-  duracao_ms: inicio ? Date.now() - inicio : null, qtd_boletos: c.qtd_boletos };
+  duracao_ms: inicio ? Date.now() - inicio : null, qtd_boletos: c.qtd_boletos, consulta_id: consultaId, valor_debito: c.valor_debito };
 const planilha = c.resultado === 'erro' ? linhaPlanilhaErro({ quando, cpf, tela: c.tela, code: c.code, detalhe: resposta.detalhe }) : null;
 return [{ json: { log, planilha } }];`,
     'registrar-evento-front': `

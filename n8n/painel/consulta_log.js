@@ -1,6 +1,8 @@
 // Classifica uma resposta de consulta (a mesma que o site recebe) para o log e a planilha de erros.
 // Arquivo autocontido: e colado no no Code do n8n por gerar-codigo-no.js (sem require).
 
+const { somaValores } = require('./valores.js'); // @no-n8n
+
 const TELA_POR_RESULTADO = {
     debito: 'Boletos vencidos',
     atrasado_sem_linha: 'Boletos vencidos',
@@ -72,7 +74,7 @@ function classificarConsulta(resposta) {
 
     if (r.status === 'erro' || !TELA_POR_RESULTADO[mapearStatus(r)]) {
         const code = r.code || 'desconhecido';
-        return { resultado: 'erro', tela: TELA_POR_CODE[code] || 'Erro desconhecido', code, origem: 'sem_dados', qtd_boletos: 0 };
+        return { resultado: 'erro', tela: TELA_POR_CODE[code] || 'Erro desconhecido', code, origem: 'sem_dados', qtd_boletos: 0, valor_debito: 0 };
     }
 
     const alunos = Array.isArray(r.alunos) ? r.alunos : null;
@@ -88,7 +90,11 @@ function classificarConsulta(resposta) {
         qtd = alunos ? alunos.reduce((s, a) => s + contarLinhas(a && a.boletos), 0) : contarLinhas(r.proximoBoleto ? [r.proximoBoleto] : []);
         resultado = qtd > 0 ? 'em_dia_boleto' : 'em_dia_sem_boleto';
     }
-    return { resultado, tela: TELA_POR_RESULTADO[resultado], code: '', origem, qtd_boletos: qtd };
+    const boletosDebito = Array.isArray(r.alunos)
+        ? r.alunos.filter(a => a && a.status === 'pagar_atrasados').reduce((acc, a) => acc.concat(a.boletos || []), [])
+        : (r.status === 'pagar_atrasados' ? (r.parcelas || []) : []);
+    const valor_debito = r.status === 'pagar_atrasados' ? somaValores(boletosDebito) : 0;
+    return { resultado, tela: TELA_POR_RESULTADO[resultado], code: '', origem, qtd_boletos: qtd, valor_debito };
 }
 
 // status valido -> chave que existe em TELA_POR_RESULTADO (so para decidir se e erro)

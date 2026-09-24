@@ -25,3 +25,10 @@ test('painel-api: usuarios_criar nao reaproveita conta de Auth existente (sem-fa
     assert.ok(!/reaproveita/.test(codigo), 'nao pode reaproveitar conta existente do Auth');
     assert.match(codigo, /Já existe uma conta de login com esse e-mail/);
 });
+
+test('registrar-consulta grava consulta_id e valor_debito', () => {
+    const codigo = gerar('registrar-consulta');
+    assert.match(codigo, /consulta_id/);
+    assert.match(codigo, /valor_debito: c\.valor_debito/);
+    assert.match(codigo, /function paraNumero/);
+});
