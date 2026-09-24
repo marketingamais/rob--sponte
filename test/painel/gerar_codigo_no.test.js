@@ -6,7 +6,7 @@ const path = require('path');
 const CLI = path.join(__dirname, '../../n8n/painel/gerar-codigo-no.js');
 const gerar = (no) => execFileSync(process.execPath, [CLI, no], { encoding: 'utf8' });
 
-for (const no of ['registrar-consulta', 'registrar-evento-front', 'montar-dashboard', 'painel-api']) {
+for (const no of ['registrar-consulta', 'registrar-evento-front', 'montar-dashboard', 'painel-api', 'validar-copia']) {
     test(`gera codigo executavel para ${no}`, () => {
         const codigo = gerar(no);
         assert.ok(!/module\.exports/.test(codigo), 'nao pode ter module.exports');
@@ -31,4 +31,15 @@ test('registrar-consulta grava consulta_id e valor_debito', () => {
     assert.match(codigo, /consulta_id/);
     assert.match(codigo, /valor_debito: c\.valor_debito/);
     assert.match(codigo, /function paraNumero/);
+});
+
+test('registrar-evento-front roteia evento novo, erro antigo e ignorado', () => {
+    const codigo = gerar('registrar-evento-front');
+    const fn = new Function('$json', `return (async () => { ${codigo} })()`);
+    const ID = '3f2b8c1e-9a4d-4c2b-8f1a-2b3c4d5e6f70';
+    return Promise.all([
+        fn({ body: { tipo: 'clicou_amais', consulta_id: ID } }).then(r => assert.strictEqual(r[0].json.rota, 'evento')),
+        fn({ body: { code: 'cpf_invalido', cpf: '123' } }).then(r => assert.strictEqual(r[0].json.rota, 'erro')),
+        fn({ body: { tipo: 'clicou_amais', consulta_id: 'x' } }).then(r => assert.strictEqual(r[0].json.rota, 'ignorar'))
+    ]);
 });

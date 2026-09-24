@@ -10,7 +10,8 @@ const mod = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8')
 const ADAPTADORES = {
     // Workflow de consulta: roda depois de "Responder ao Site". Entrada: a resposta enviada ao site.
     'registrar-consulta': ['valores.js', 'consulta_log.js'],
-    'registrar-evento-front': ['valores.js', 'consulta_log.js'],
+    'registrar-evento-front': ['valores.js', 'consulta_log.js', 'pagamentos.js', 'eventos.js'],
+    'validar-copia': ['valores.js', 'pagamentos.js', 'eventos.js'],
     'montar-dashboard': ['dashboard.js'],
     'painel-api': ['usuarios.js']
 };
@@ -29,15 +30,34 @@ const planilha = c.resultado === 'erro' ? linhaPlanilhaErro({ quando, cpf, tela:
 return [{ json: { log, planilha } }];`,
     'registrar-evento-front': `
 const b = $json.body || {};
+const quando = new Date().toISOString();
+if (b.tipo) {
+  const e = normalizarEvento(b, quando);
+  if (e.ignorar) return [{ json: { rota: 'ignorar', motivo: e.motivo } }];
+  return [{ json: { rota: 'evento', tipo: e.tipo, log: e.log, conferencia: e.conferencia } }];
+}
 const CODES = ['cpf_invalido', 'timeout_navegador', 'desconhecido'];
 const code = CODES.includes(b.code) ? b.code : 'desconhecido';
 const cpf = String(b.cpf || '').replace(/\\D/g, '').slice(0, 11);
-const quando = new Date().toISOString();
 const c = classificarConsulta({ status: 'erro', code });
 const duracao = Number(b.duracao_ms);
 const log = { quando, resultado: 'erro', tela: c.tela, code, origem: 'navegador',
   duracao_ms: Number.isFinite(duracao) && duracao >= 0 && duracao < 600000 ? Math.round(duracao) : null, qtd_boletos: 0 };
-return [{ json: { log, planilha: linhaPlanilhaErro({ quando, cpf, tela: c.tela, code }) } }];`,
+return [{ json: { rota: 'erro', log, planilha: linhaPlanilhaErro({ quando, cpf, tela: c.tela, code }) } }];`,
+    'validar-copia': `
+const ev = $('Registrar Evento').first().json;
+const consulta = $('Buscar Consulta').all().map(i => i.json).find(r => r && r.consulta_id === ev.conferencia.consulta_id) || null;
+const SERVICE_KEY = '__SUPABASE_SERVICE_KEY__';
+const cpfFmt = ev.conferencia.cpf.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, '$1.$2.$3-$4');
+let cacheRow = null;
+try {
+  const r = await this.helpers.httpRequest({ method: 'GET', json: true, timeout: 15000,
+    url: 'https://udvkjlnvcttzrhscsecg.supabase.co/rest/v1/alunos_cache?select=status_sponte,data_atualizacao,proximo_boleto&cpf=eq.' + encodeURIComponent(cpfFmt),
+    headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } });
+  cacheRow = Array.isArray(r) && r[0] ? r[0] : null;
+} catch (e) { cacheRow = null; }
+const v = validarCopia({ consulta, cacheRow, conferencia: ev.conferencia, agoraIso: new Date().toISOString() });
+return [{ json: { ok: v.ok, motivo: v.motivo, conferencia: ev.conferencia } }];`,
     'montar-dashboard': `
 const pedido = $('Autenticar e Rotear').first().json;
 const linhas = $('Ler Log Consultas').all().map(i => i.json).filter(l => l && l.quando);
