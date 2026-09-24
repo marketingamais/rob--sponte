@@ -78,12 +78,7 @@ if (TIPO === 'criar') {
     await http({ method: 'POST', url: SUPA + '/auth/v1/admin/users', headers: admin,
       body: { email: pedido.email, password: pedido.senha, email_confirm: true, app_metadata: meta } });
   } catch (e) {
-    // e-mail ja existe no Auth (mas nao no painel): reaproveita
-    const r = await http({ method: 'GET', url: SUPA + '/auth/v1/admin/users?per_page=1000', headers: admin });
-    const existente = (r.users || []).find(x => String(x.email).toLowerCase() === pedido.email);
-    if (!existente) return resp(500, { ok: false, erro: 'Não foi possível criar o usuário.' });
-    await http({ method: 'PUT', url: SUPA + '/auth/v1/admin/users/' + existente.id, headers: admin,
-      body: { password: pedido.senha, email_confirm: true, app_metadata: meta, ban_duration: 'none' } });
+    return resp(400, { ok: false, erro: 'Já existe uma conta de login com esse e-mail. Use outro e-mail.' });
   }
   return resp(200, { ok: true });
 }

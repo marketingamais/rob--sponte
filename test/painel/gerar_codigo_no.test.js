@@ -19,3 +19,9 @@ for (const no of ['registrar-consulta', 'registrar-evento-front', 'montar-dashbo
 test('no desconhecido falha', () => {
     assert.throws(() => gerar('nao-existe'));
 });
+
+test('painel-api: usuarios_criar nao reaproveita conta de Auth existente (sem-fallback-takeover)', () => {
+    const codigo = gerar('painel-api');
+    assert.ok(!/reaproveita/.test(codigo), 'nao pode reaproveitar conta existente do Auth');
+    assert.match(codigo, /Já existe uma conta de login com esse e-mail/);
+});
