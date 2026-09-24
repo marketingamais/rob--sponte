@@ -12,7 +12,7 @@ const ADAPTADORES = {
     'registrar-consulta': ['valores.js', 'consulta_log.js'],
     'registrar-evento-front': ['valores.js', 'consulta_log.js', 'pagamentos.js', 'eventos.js'],
     'validar-copia': ['valores.js', 'pagamentos.js', 'eventos.js'],
-    'montar-dashboard': ['dashboard.js'],
+    'montar-dashboard': ['dashboard.js', 'kpis.js'],
     'painel-api': ['usuarios.js']
 };
 
@@ -65,6 +65,12 @@ const ingestoes = $('Ler Log Ingestoes').all().map(i => i.json).filter(l => l &&
   .sort((a, b) => String(b.quando).localeCompare(String(a.quando)));
 const agora = new Date();
 const d = agregarDashboard(linhas, pedido.de, pedido.ate, agora);
+const ler = (no) => { try { return $(no).all().map(i => i.json).filter(x => x && (x.quando || x.copiado_em)); } catch (e) { return []; } };
+const cfg = (() => { try { return $('Ler Config').all().map(i => i.json).find(r => r && r.chave === 'kpis_padrao'); } catch (e) { return null; } })();
+let padrao = null; try { padrao = cfg ? JSON.parse(cfg.valor) : null; } catch (e) { padrao = null; }
+const permitidos = kpisPermitidos(pedido.usuario, padrao);
+const kpis = filtrarKpis(agregarKpis({ consultas: linhas, eventos: ler('Ler Eventos'), resultados: ler('Ler Resultados'),
+  aConferir: ler('Ler A Conferir'), de: pedido.de, ate: pedido.ate, agora }), permitidos);
 const SERVICE_KEY = '__SUPABASE_SERVICE_KEY__';
 let robo = { ok: false };
 try {
@@ -82,7 +88,10 @@ try {
 const u = ingestoes[0] || null;
 const saude = avaliarSaude({ robo, cacheAtualizadoEm, erros24h: d.erros24h,
   ultimaIngestao: u ? { quando: u.quando, status: u.status, cpfs: u.cpfs, filtro: u.filtro } : null }, agora);
-return [{ json: { status: 200, corpo: { ok: true, dashboard: d, saude, ultimaIngestao: u, planilhaUrl: pedido.planilhaUrl, usuario: pedido.usuario } } }];`,
+const operacao = filtrarKpis({ erros_por_tela: d.errosPorTela, origem_respostas: { porOrigem: d.porOrigem, tempoMedioMs: d.tempoMedioMs } }, permitidos);
+return [{ json: { status: 200, corpo: { ok: true, dashboard: pedido.usuario && pedido.usuario.papel === 'super_admin' ? d : undefined, kpis: permitidos, dados: Object.assign({}, kpis, operacao),
+  saude: permitidos.includes('saude_sistema') ? saude : null, ultimaIngestao: permitidos.includes('saude_sistema') ? u : null,
+  periodo: d.periodo, planilhaUrl: pedido.planilhaUrl, usuario: pedido.usuario } } }];`,
     'painel-api': fs.readFileSync(path.join(__dirname, 'painel_api_corpo.js'), 'utf8')
 };
 

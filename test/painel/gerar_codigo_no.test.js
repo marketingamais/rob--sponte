@@ -43,3 +43,11 @@ test('registrar-evento-front roteia evento novo, erro antigo e ignorado', () => 
         fn({ body: { tipo: 'clicou_amais', consulta_id: 'x' } }).then(r => assert.strictEqual(r[0].json.rota, 'ignorar'))
     ]);
 });
+
+test('montar-dashboard filtra KPIs pelo usuario', () => {
+    const codigo = gerar('montar-dashboard');
+    assert.match(codigo, /filtrarKpis\(/);
+    assert.match(codigo, /kpisPermitidos\(/);
+    assert.match(codigo, /__SUPABASE_SERVICE_KEY__/);
+    assert.match(codigo, /dashboard: pedido\.usuario && pedido\.usuario\.papel === 'super_admin' \? d : undefined/);
+});

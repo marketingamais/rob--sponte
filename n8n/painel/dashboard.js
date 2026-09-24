@@ -96,4 +96,4 @@ function avaliarSaude({ robo, ultimaIngestao, cacheAtualizadoEm, erros24h }, ago
     return itens;
 }
 
-module.exports = { agregarDashboard, avaliarSaude };
+module.exports = { agregarDashboard, avaliarSaude, diaSP, diasEntre };
