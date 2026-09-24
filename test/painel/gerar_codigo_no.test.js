@@ -77,8 +77,9 @@ test('conferir-pagamento: pareia por pairedItem, pula erro do Supabase, CPF ause
     assert.deepStrictEqual(out.map(o => [o.json.id, o.json.final, o.json.registro && o.json.registro.resultado]), [[1, true, 'pago'], [3, true, 'indeterminado']]);
 });
 
-test('validar-copia le o cache do no Buscar Cache, sem chave no codigo', () => {
+test('validar-copia le o cache do no Buscar Cache e o de existentes, sem chave no codigo', () => {
     const codigo = gerar('validar-copia');
     assert.match(codigo, /\$\('Buscar Cache'\)/);
+    assert.match(codigo, /\$\('Buscar Existente'\)/);
     assert.ok(!/SUPABASE_SERVICE_KEY|httpRequest/.test(codigo));
 });

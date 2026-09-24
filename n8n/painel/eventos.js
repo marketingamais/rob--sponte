@@ -37,12 +37,23 @@ function normalizarEvento(body, agoraIso) {
     };
 }
 
-function validarCopia({ consulta, cacheRow, conferencia, agoraIso }) {
+const soDigitosEventos = (s) => String(s || '').replace(/\D/g, '');
+
+function mesmaConferenciaExistente(e, c) {
+    if (!e || !c) return false;
+    const le = soDigitosEventos(e.linha), lc = soDigitosEventos(c.linha);
+    if (le && lc && le === lc) return true;
+    return String(e.cpf || '') === String(c.cpf || '') && String(e.num_parcela || '') === String(c.num_parcela || '') && String(e.vencimento || '') === String(c.vencimento || '');
+}
+
+function validarCopia({ consulta, cacheRow, conferencia, agoraIso, existentes }) {
     const nao = (motivo) => ({ ok: false, motivo });
     if (!consulta || consulta.consulta_id !== conferencia.consulta_id) return nao('consulta_inexistente');
     if (Math.abs(Date.parse(agoraIso) - Date.parse(consulta.quando)) > JANELA_CONSULTA_MS) return nao('consulta_antiga');
     if (!cacheRow) return nao('sem_cache');
     if (!parcelasEmAberto(cacheRow).some(b => mesmaParcela(b, conferencia))) return nao('parcela_nao_encontrada');
+    const lista = Array.isArray(existentes) ? existentes : [];
+    if (lista.some(e => mesmaConferenciaExistente(e, conferencia))) return nao('ja_em_conferencia');
     return { ok: true, motivo: '' };
 }
 

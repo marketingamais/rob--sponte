@@ -50,7 +50,8 @@ return [{ json: { rota: 'erro', log, planilha: linhaPlanilhaErro({ quando, cpf, 
 const ev = $('Registrar Evento').first().json;
 const consulta = $('Buscar Consulta').all().map(i => i.json).find(r => r && r.consulta_id === ev.conferencia.consulta_id) || null;
 const cacheRow = (() => { try { return $('Buscar Cache').all().map(i => i.json).find(r => r && r.cpf) || null; } catch (e) { return null; } })();
-const v = validarCopia({ consulta, cacheRow, conferencia: ev.conferencia, agoraIso: new Date().toISOString() });
+const existentes = (() => { try { return $('Buscar Existente').all().map(i => i.json).filter(r => r && r.id); } catch (e) { return []; } })();
+const v = validarCopia({ consulta, cacheRow, conferencia: ev.conferencia, agoraIso: new Date().toISOString(), existentes });
 return [{ json: { ok: v.ok, motivo: v.motivo, conferencia: ev.conferencia } }];`,
     'montar-dashboard': `
 const pedido = $('Autenticar e Rotear').first().json;

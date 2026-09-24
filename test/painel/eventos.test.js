@@ -48,3 +48,19 @@ test('validarCopia exige consulta recente e parcela em aberto no cache', () => {
     assert.strictEqual(validarCopia({ consulta, cacheRow: null, conferencia: conf, agoraIso: AGORA }).motivo, 'sem_cache');
     assert.strictEqual(validarCopia({ consulta, cacheRow: { proximo_boleto: '[]' }, conferencia: conf, agoraIso: AGORA }).motivo, 'parcela_nao_encontrada');
 });
+test('validarCopia recusa parcela que ja esta em conferencia', () => {
+    const conf = normalizarEvento(copia(), AGORA).conferencia;
+    const consulta = { consulta_id: ID, quando: '2026-09-24T11:30:00.000Z' };
+    const cacheRow = { status_sponte: 'pagar_atrasados', proximo_boleto: JSON.stringify({ alunos: [{ status: 'pagar_atrasados', boletos: [{ numParcela: '8', dataVencimento: '10/09/2026', linhaDigitavel: LINHA }] }] }) };
+    const base = { consulta, cacheRow, conferencia: conf, agoraIso: AGORA };
+    const OUTRA_LINHA = '00190000090312106800500162741177415950000018000';
+    // mesma linha (digitos) -> recusa
+    assert.deepStrictEqual(validarCopia(Object.assign({}, base, { existentes: [{ id: 1, linha: LINHA }] })), { ok: false, motivo: 'ja_em_conferencia' });
+    // linha diferente mas mesmo cpf+num_parcela+vencimento -> recusa
+    assert.deepStrictEqual(validarCopia(Object.assign({}, base, { existentes: [{ id: 1, linha: OUTRA_LINHA, cpf: conf.cpf, num_parcela: conf.num_parcela, vencimento: conf.vencimento }] })), { ok: false, motivo: 'ja_em_conferencia' });
+    // lista vazia ou undefined -> ok
+    assert.strictEqual(validarCopia(Object.assign({}, base, { existentes: [] })).ok, true);
+    assert.strictEqual(validarCopia(base).ok, true);
+    // outra parcela (num_parcela diferente, linha diferente) -> ok
+    assert.strictEqual(validarCopia(Object.assign({}, base, { existentes: [{ id: 1, linha: OUTRA_LINHA, cpf: conf.cpf, num_parcela: '9', vencimento: conf.vencimento }] })).ok, true);
+});
