@@ -66,3 +66,9 @@ test('conferir-pagamento decide e separa final de proxima etapa', () => {
     assert.match(codigo, /decidirConferencia\(/);
     assert.match(codigo, /__SUPABASE_SERVICE_KEY__/);
 });
+
+test('validar-copia le o cache do no Buscar Cache, sem chave no codigo', () => {
+    const codigo = gerar('validar-copia');
+    assert.match(codigo, /\$\('Buscar Cache'\)/);
+    assert.ok(!/SUPABASE_SERVICE_KEY|httpRequest/.test(codigo));
+});

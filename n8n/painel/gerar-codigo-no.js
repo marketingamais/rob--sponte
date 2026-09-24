@@ -48,15 +48,7 @@ return [{ json: { rota: 'erro', log, planilha: linhaPlanilhaErro({ quando, cpf, 
     'validar-copia': `
 const ev = $('Registrar Evento').first().json;
 const consulta = $('Buscar Consulta').all().map(i => i.json).find(r => r && r.consulta_id === ev.conferencia.consulta_id) || null;
-const SERVICE_KEY = '__SUPABASE_SERVICE_KEY__';
-const cpfFmt = ev.conferencia.cpf.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, '$1.$2.$3-$4');
-let cacheRow = null;
-try {
-  const r = await this.helpers.httpRequest({ method: 'GET', json: true, timeout: 15000,
-    url: 'https://udvkjlnvcttzrhscsecg.supabase.co/rest/v1/alunos_cache?select=status_sponte,data_atualizacao,proximo_boleto&cpf=eq.' + encodeURIComponent(cpfFmt),
-    headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } });
-  cacheRow = Array.isArray(r) && r[0] ? r[0] : null;
-} catch (e) { cacheRow = null; }
+const cacheRow = (() => { try { return $('Buscar Cache').all().map(i => i.json).find(r => r && r.cpf) || null; } catch (e) { return null; } })();
 const v = validarCopia({ consulta, cacheRow, conferencia: ev.conferencia, agoraIso: new Date().toISOString() });
 return [{ json: { ok: v.ok, motivo: v.motivo, conferencia: ev.conferencia } }];`,
     'montar-dashboard': `
