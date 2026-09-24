@@ -2,7 +2,7 @@
 const SUPA = 'https://udvkjlnvcttzrhscsecg.supabase.co';
 const SERVICE_KEY = '__SUPABASE_SERVICE_KEY__';
 const PLANILHA_URL = '__PLANILHA_URL__';
-const req = $json;
+const req = $('Webhook API').first().json;
 const body = req.body || {};
 const acao = String(body.acao || '');
 const auth = String((req.headers && (req.headers.authorization || req.headers.Authorization)) || '');
@@ -47,10 +47,21 @@ if (acao === 'dashboard') {
   if (de > ate) return resp(400, { ok: false, erro: 'Período inválido.' });
   // dia anterior em UTC cobre o fuso de SP no filtro do Data Table
   const desdeIso = new Date(Date.parse(de + 'T00:00:00Z') - 86400000).toISOString();
-  return [{ json: { precisaDashboard: true, de, ate, desdeIso, usuario, planilhaUrl: PLANILHA_URL } }];
+  return [{ json: { precisaDashboard: true, de, ate, desdeIso, usuario: { email: eu.email, nome: eu.nome, papel: eu.papel, kpis: eu.kpis }, planilhaUrl: PLANILHA_URL } }];
 }
 
-if (acao === 'eu') return resp(200, { ok: true, usuario, planilhaUrl: PLANILHA_URL });
+if (acao === 'eu') return resp(200, { ok: true, usuario, planilhaUrl: PLANILHA_URL, catalogo: KPIS });
+
+if (acao === 'kpis_padrao_ler' || acao === 'kpis_padrao_salvar') {
+  if (eu.papel !== 'super_admin') return resp(403, { ok: false, erro: 'Apenas o super administrador pode gerenciar usuários.' });
+  if (acao === 'kpis_padrao_ler') {
+    let padrao = PADRAO_INICIAL;
+    try { const c = $('Ler Config').all().map(i => i.json).find(r => r && r.chave === 'kpis_padrao'); if (c) padrao = JSON.parse(c.valor); } catch (e) {}
+    return resp(200, { ok: true, padrao: kpisPermitidos({ papel: 'membro' }, padrao), catalogo: KPIS });
+  }
+  if (!validarListaKpis(body.padrao)) return resp(400, { ok: false, erro: 'Lista de KPIs inválida.' });
+  return [{ json: { salvarConfig: { chave: 'kpis_padrao', valor: JSON.stringify(body.padrao) }, status: 200, corpo: { ok: true } } }];
+}
 
 if (acao === 'trocar_senha') {
   const v = validarNovaSenha(body.senha_nova);
@@ -63,7 +74,7 @@ if (!acao.startsWith('usuarios_')) return resp(400, { ok: false, erro: 'Ação i
 if (eu.papel !== 'super_admin') return resp(403, { ok: false, erro: 'Apenas o super administrador pode gerenciar usuários.' });
 
 const usuarios = await listarUsuarios();
-if (acao === 'usuarios_listar') return resp(200, { ok: true, usuarios: usuarios.map(u => ({ email: u.email, nome: u.nome, papel: u.papel, ativo: u.ativo })) });
+if (acao === 'usuarios_listar') return resp(200, { ok: true, usuarios: usuarios.map(u => ({ email: u.email, nome: u.nome, papel: u.papel, ativo: u.ativo, kpis: u.kpis })) });
 
 const TIPO = { usuarios_criar: 'criar', usuarios_atualizar: 'atualizar', usuarios_remover: 'remover', usuarios_redefinir_senha: 'redefinir_senha' }[acao];
 if (!TIPO) return resp(400, { ok: false, erro: 'Ação inválida.' });
@@ -74,6 +85,7 @@ const alvo = usuarios.find(u => u.email === pedido.email);
 
 if (TIPO === 'criar') {
   const meta = { painel: true, papel: pedido.papel, nome: String(pedido.nome).trim(), ativo: true };
+  if (Array.isArray(pedido.kpis)) meta.kpis = pedido.kpis;
   try {
     await http({ method: 'POST', url: SUPA + '/auth/v1/admin/users', headers: admin,
       body: { email: pedido.email, password: pedido.senha, email_confirm: true, app_metadata: meta } });
@@ -94,6 +106,7 @@ if (TIPO === 'remover') {
 const meta = { painel: true, papel: pedido.papel !== undefined ? pedido.papel : alvo.papel,
   nome: pedido.nome !== undefined ? String(pedido.nome).trim() : alvo.nome,
   ativo: pedido.ativo !== undefined ? pedido.ativo === true : alvo.ativo };
+meta.kpis = pedido.kpis !== undefined ? pedido.kpis : (alvo.kpis || undefined);
 const corpo = { app_metadata: meta };
 if (pedido.ativo !== undefined) corpo.ban_duration = meta.ativo ? 'none' : '876000h';
 await http({ method: 'PUT', url: SUPA + '/auth/v1/admin/users/' + alvo.id, headers: admin, body: corpo });

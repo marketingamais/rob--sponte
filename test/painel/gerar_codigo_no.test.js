@@ -51,3 +51,12 @@ test('montar-dashboard filtra KPIs pelo usuario', () => {
     assert.match(codigo, /__SUPABASE_SERVICE_KEY__/);
     assert.match(codigo, /dashboard: pedido\.usuario && pedido\.usuario\.papel === 'super_admin' \? d : undefined/);
 });
+
+test('painel-api tem as acoes de padrao de KPIs e grava kpis no app_metadata', () => {
+    const codigo = gerar('painel-api');
+    assert.match(codigo, /kpis_padrao_ler/);
+    assert.match(codigo, /kpis_padrao_salvar/);
+    assert.match(codigo, /salvarConfig/);
+    assert.match(codigo, /meta\.kpis|kpis: pedido\.kpis/);
+    assert.match(codigo, /\$\('Webhook API'\)\.first\(\)\.json/);
+});

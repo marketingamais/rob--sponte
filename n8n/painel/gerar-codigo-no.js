@@ -13,7 +13,7 @@ const ADAPTADORES = {
     'registrar-evento-front': ['valores.js', 'consulta_log.js', 'pagamentos.js', 'eventos.js'],
     'validar-copia': ['valores.js', 'pagamentos.js', 'eventos.js'],
     'montar-dashboard': ['dashboard.js', 'kpis.js'],
-    'painel-api': ['usuarios.js']
+    'painel-api': ['kpis.js', 'usuarios.js']
 };
 
 const CORPOS = {

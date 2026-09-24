@@ -1,11 +1,12 @@
 // Regras de usuarios do painel. Usuario do painel = usuario do Supabase Auth com app_metadata.painel === true.
+const { validarListaKpis } = require('./kpis.js'); // @no-n8n
 
 const PAPEIS = ['super_admin', 'membro'];
 
 function usuarioDoAuth(u) {
     if (!u || !u.app_metadata || u.app_metadata.painel !== true) return null;
     const m = u.app_metadata;
-    return { id: u.id, email: String(u.email || '').toLowerCase(), nome: m.nome || '', papel: m.papel, ativo: m.ativo === true };
+    return { id: u.id, email: String(u.email || '').toLowerCase(), nome: m.nome || '', papel: m.papel, ativo: m.ativo === true, kpis: Array.isArray(m.kpis) ? m.kpis : null };
 }
 
 function validarNovaSenha(senha) {
@@ -20,6 +21,7 @@ function validarAlteracaoUsuario(usuarios, atorEmail, pedido) {
     if (!ator || !ator.ativo || ator.papel !== 'super_admin') return falha('Apenas o super administrador pode gerenciar usuários.');
     const p = pedido || {};
     const email = String(p.email || '').trim().toLowerCase();
+    if (p.kpis !== undefined && !validarListaKpis(p.kpis)) return falha('Lista de KPIs inválida.');
 
     if (p.tipo === 'criar') {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return falha('E-mail inválido.');

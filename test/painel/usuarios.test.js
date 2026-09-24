@@ -7,7 +7,7 @@ const BASE = [U('chefe@x.com', 'super_admin'), U('outro@x.com', 'super_admin'), 
 
 test('usuarioDoAuth', () => {
     assert.deepStrictEqual(usuarioDoAuth({ id: '1', email: 'A@X.com', app_metadata: { painel: true, papel: 'membro', nome: 'Ana', ativo: true } }),
-        { id: '1', email: 'a@x.com', nome: 'Ana', papel: 'membro', ativo: true });
+        { id: '1', email: 'a@x.com', nome: 'Ana', papel: 'membro', ativo: true, kpis: null });
     assert.strictEqual(usuarioDoAuth({ id: '2', email: 'b@x.com', app_metadata: {} }), null);
     assert.strictEqual(usuarioDoAuth(null), null);
     assert.strictEqual(usuarioDoAuth({ id: '3', email: 'c@x.com', app_metadata: { painel: true, papel: 'membro', ativo: false } }).ativo, false);
@@ -68,4 +68,16 @@ test('alvo inexistente e tipo invalido', () => {
     assert.strictEqual(validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'atualizar', email: 'm@x.com', papel: 'dono' }).ok, false);
     assert.strictEqual(validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'redefinir_senha', email: 'm@x.com', senha: 'curta' }).ok, false);
     assert.deepStrictEqual(validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'redefinir_senha', email: 'm@x.com', senha: '1234567890' }), { ok: true });
+});
+
+test('usuarioDoAuth traz kpis quando for array', () => {
+    assert.deepStrictEqual(usuarioDoAuth({ id: '1', email: 'a@x.com', app_metadata: { painel: true, papel: 'membro', ativo: true, kpis: ['consultas_total'] } }).kpis, ['consultas_total']);
+    assert.strictEqual(usuarioDoAuth({ id: '1', email: 'a@x.com', app_metadata: { painel: true, papel: 'membro', ativo: true, kpis: 'x' } }).kpis, null);
+});
+test('kpis invalido e rejeitado em criar e atualizar', () => {
+    const r1 = validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'criar', email: 'n@x.com', nome: 'N', papel: 'membro', senha: '1234567890', kpis: ['nao_existe'] });
+    assert.deepStrictEqual(r1, { ok: false, erro: 'Lista de KPIs inválida.' });
+    const r2 = validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'atualizar', email: 'm@x.com', kpis: 'consultas_total' });
+    assert.deepStrictEqual(r2, { ok: false, erro: 'Lista de KPIs inválida.' });
+    assert.deepStrictEqual(validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'atualizar', email: 'm@x.com', kpis: ['consultas_total'] }), { ok: true });
 });
