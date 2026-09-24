@@ -11,7 +11,16 @@ test('usuarioDoAuth', () => {
     assert.strictEqual(usuarioDoAuth({ id: '2', email: 'b@x.com', app_metadata: {} }), null);
     assert.strictEqual(usuarioDoAuth(null), null);
     assert.strictEqual(usuarioDoAuth({ id: '3', email: 'c@x.com', app_metadata: { painel: true, papel: 'membro', ativo: false } }).ativo, false);
-    assert.strictEqual(usuarioDoAuth({ id: '4', email: 'd@x.com', app_metadata: { painel: true, papel: 'membro' } }).ativo, true);
+    // spec: ativo só quando app_metadata.ativo === true
+    assert.strictEqual(usuarioDoAuth({ id: '4', email: 'd@x.com', app_metadata: { painel: true, papel: 'membro' } }).ativo, false);
+});
+
+test('ativo precisa ser booleano (senão "false" desativaria o ultimo super admin)', () => {
+    for (const ativo of ['false', 0, null, 'true', 1]) {
+        const r = validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'atualizar', email: 'chefe@x.com', ativo });
+        assert.deepStrictEqual(r, { ok: false, erro: 'Status inválido.' }, JSON.stringify(ativo));
+    }
+    assert.deepStrictEqual(validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'atualizar', email: 'm@x.com', ativo: false }), { ok: true });
 });
 
 test('validarNovaSenha', () => {

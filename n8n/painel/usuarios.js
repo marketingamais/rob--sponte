@@ -5,7 +5,7 @@ const PAPEIS = ['super_admin', 'membro'];
 function usuarioDoAuth(u) {
     if (!u || !u.app_metadata || u.app_metadata.painel !== true) return null;
     const m = u.app_metadata;
-    return { id: u.id, email: String(u.email || '').toLowerCase(), nome: m.nome || '', papel: m.papel, ativo: m.ativo !== false };
+    return { id: u.id, email: String(u.email || '').toLowerCase(), nome: m.nome || '', papel: m.papel, ativo: m.ativo === true };
 }
 
 function validarNovaSenha(senha) {
@@ -40,6 +40,7 @@ function validarAlteracaoUsuario(usuarios, atorEmail, pedido) {
     const rebaixa = p.tipo === 'atualizar' && p.papel !== undefined && p.papel !== 'super_admin';
     const desativa = p.tipo === 'atualizar' && p.ativo === false;
     if (p.tipo === 'atualizar' && p.papel !== undefined && !PAPEIS.includes(p.papel)) return falha('Papel inválido.');
+    if (p.tipo === 'atualizar' && p.ativo !== undefined && typeof p.ativo !== 'boolean') return falha('Status inválido.');
     if (ehVoceMesmo && (p.tipo === 'remover' || rebaixa || desativa)) return falha('Você não pode remover, rebaixar ou desativar você mesmo.');
 
     const tiraSuper = alvo.papel === 'super_admin' && alvo.ativo && (p.tipo === 'remover' || rebaixa || desativa);
