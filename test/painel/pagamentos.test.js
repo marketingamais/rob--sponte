@@ -49,6 +49,14 @@ test('negociar nao conta como pago (cache sem boletos)', () => {
     assert.deepStrictEqual(d, { final: false, etapa: 2, proxima_conferencia: '2026-09-26T12:00:00.000Z' });
     assert.strictEqual(P.decidirConferencia(L({ etapa: 3 }), cache('negociar', []), '2026-09-27T12:05:00.000Z').resultado, 'nao_pago');
 });
+test('data_atualizacao ausente ou igual ao copiado_em: nao conta a etapa; na 3a vira indeterminado', () => {
+    const semData = { status_sponte: 'pagar_atrasados', proximo_boleto: JSON.stringify({ alunos: [{ nomeAluno: 'A', status: 'pagar_atrasados', boletos: [] }] }) };
+    assert.deepStrictEqual(P.decidirConferencia(L(), semData, '2026-09-25T16:05:00.000Z'), { final: false, etapa: 2, proxima_conferencia: '2026-09-26T12:00:00.000Z' });
+    assert.strictEqual(P.decidirConferencia(L({ etapa: 3 }), semData, '2026-09-27T12:05:00.000Z').resultado, 'indeterminado');
+    const igual = cache('pagar_atrasados', [], COPIA);
+    assert.deepStrictEqual(P.decidirConferencia(L(), igual, '2026-09-25T16:05:00.000Z'), { final: false, etapa: 2, proxima_conferencia: '2026-09-26T12:00:00.000Z' });
+    assert.strictEqual(P.decidirConferencia(L({ etapa: 3 }), igual, '2026-09-27T12:05:00.000Z').resultado, 'indeterminado');
+});
 test('CPF fora do cache: indeterminado', () => {
     assert.strictEqual(P.decidirConferencia(L(), null, '2026-09-25T16:05:00.000Z').resultado, 'indeterminado');
 });

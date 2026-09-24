@@ -93,3 +93,16 @@ test('painel-api: 403 de kpis_padrao_* tem texto proprio', () => {
     const codigo = gerar('painel-api');
     assert.match(codigo, /Apenas o super administrador pode alterar o padrão de KPIs\./);
 });
+
+test('filtrar-conferencias: exclui sem id, sem cpf, futura; mantem vencida', async () => {
+    const codigo = gerar('filtrar-conferencias');
+    const linhas = [
+        { id: null, cpf: '11111111111', proxima_conferencia: '2000-01-01T00:00:00.000Z' },
+        { id: 2, cpf: null, proxima_conferencia: '2000-01-01T00:00:00.000Z' },
+        { id: 3, cpf: '33333333333', proxima_conferencia: '2099-01-01T00:00:00.000Z' },
+        { id: 4, cpf: '44444444444', proxima_conferencia: '2000-01-01T00:00:00.000Z' }
+    ];
+    const $input = { all: () => linhas.map(json => ({ json })) };
+    const out = await new Function('$input', `return (async () => { ${codigo} })()`)($input);
+    assert.deepStrictEqual(out.map(o => o.json.id), [4]);
+});
