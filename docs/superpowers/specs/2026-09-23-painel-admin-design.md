@@ -48,7 +48,7 @@ Site (consulta) ──POST buscar-boletos-novo──► n8n PROD (consulta)
 
 Painel (/painel-f8ed7ba4777f/) ──POST painel-api {acao, ...} + Bearer──► n8n "[CIA] Painel Admin [PROD]"
       ├─ login / refresh ──► Supabase Auth (/auth/v1/token)
-      ├─ toda outra ação: valida token (GET /auth/v1/user) + papel em cia_admin_usuarios
+      ├─ toda outra ação: valida token (GET /auth/v1/user) + papel em app_metadata
       ├─ dashboard ──► agrega cia_consultas_log + cia_ingestoes_log + saúde (robô /ping,/versao; idade do cache)
       └─ usuarios.* (só super_admin) ──► Supabase Auth admin API + cia_admin_usuarios
 ```
@@ -152,7 +152,7 @@ Para separar os dois casos de `instabilidade`, `Responder Erro` passa a incluir 
 | `usuarios_criar` `{email, nome, papel, senha}` | super_admin | admin API `POST /auth/v1/admin/users` (`email_confirm: true`) e depois linha na tabela. Se o e-mail já existe no Auth, reaproveita e atualiza a senha. |
 | `usuarios_atualizar` `{email, nome?, papel?, ativo?}` | super_admin | atualiza a tabela; ao desativar, também faz `ban_duration: '876000h'` no Auth; ao reativar, `ban_duration: 'none'` |
 | `usuarios_redefinir_senha` `{email, senha}` | super_admin | admin API `PUT /auth/v1/admin/users/{id}` |
-| `usuarios_remover` `{email}` | super_admin | apaga do Auth e da tabela |
+| `usuarios_remover` `{email}` | super_admin | apaga do Auth |
 
 **Regras de proteção:**
 - O super admin não pode desativar, rebaixar nem remover a si mesmo.
@@ -160,7 +160,7 @@ Para separar os dois casos de `instabilidade`, `Responder Erro` passa a incluir 
 - Papéis válidos: `super_admin` e `membro`.
 - Senha com no mínimo 10 caracteres.
 
-**Data Table `cia_admin_usuarios`:** `email`, `nome`, `papel`, `ativo`, `criado_em`, `criado_por`.
+**Usuários do painel = usuários do Supabase Auth com `app_metadata.painel = true` (campos `papel`, `nome`, `ativo`). Não há tabela própria.
 
 ### 6. Dashboard (`acao: dashboard`)
 
