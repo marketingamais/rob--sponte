@@ -83,3 +83,13 @@ test('validar-copia le o cache do no Buscar Cache e o de existentes, sem chave n
     assert.match(codigo, /\$\('Buscar Existente'\)/);
     assert.ok(!/SUPABASE_SERVICE_KEY|httpRequest/.test(codigo));
 });
+
+test('painel-api: kpis null vira null explicito no app_metadata (usar o padrao)', () => {
+    const codigo = gerar('painel-api');
+    assert.match(codigo, /pedido\.kpis === null \? null/);
+});
+
+test('painel-api: 403 de kpis_padrao_* tem texto proprio', () => {
+    const codigo = gerar('painel-api');
+    assert.match(codigo, /Apenas o super administrador pode alterar o padrão de KPIs\./);
+});

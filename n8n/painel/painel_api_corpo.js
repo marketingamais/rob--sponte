@@ -53,7 +53,7 @@ if (acao === 'dashboard') {
 if (acao === 'eu') return resp(200, { ok: true, usuario, planilhaUrl: PLANILHA_URL, catalogo: KPIS });
 
 if (acao === 'kpis_padrao_ler' || acao === 'kpis_padrao_salvar') {
-  if (eu.papel !== 'super_admin') return resp(403, { ok: false, erro: 'Apenas o super administrador pode gerenciar usuários.' });
+  if (eu.papel !== 'super_admin') return resp(403, { ok: false, erro: 'Apenas o super administrador pode alterar o padrão de KPIs.' });
   if (acao === 'kpis_padrao_ler') {
     let padrao = PADRAO_INICIAL;
     try { const c = $('Ler Config').all().map(i => i.json).find(r => r && r.chave === 'kpis_padrao'); if (c) padrao = JSON.parse(c.valor); } catch (e) {}
@@ -106,7 +106,7 @@ if (TIPO === 'remover') {
 const meta = { painel: true, papel: pedido.papel !== undefined ? pedido.papel : alvo.papel,
   nome: pedido.nome !== undefined ? String(pedido.nome).trim() : alvo.nome,
   ativo: pedido.ativo !== undefined ? pedido.ativo === true : alvo.ativo };
-meta.kpis = pedido.kpis !== undefined ? pedido.kpis : (alvo.kpis || undefined);
+meta.kpis = pedido.kpis === null ? null : (pedido.kpis !== undefined ? pedido.kpis : (alvo.kpis || undefined));
 const corpo = { app_metadata: meta };
 if (pedido.ativo !== undefined) corpo.ban_duration = meta.ativo ? 'none' : '876000h';
 await http({ method: 'PUT', url: SUPA + '/auth/v1/admin/users/' + alvo.id, headers: admin, body: corpo });

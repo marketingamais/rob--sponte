@@ -74,6 +74,10 @@ test('usuarioDoAuth traz kpis quando for array', () => {
     assert.deepStrictEqual(usuarioDoAuth({ id: '1', email: 'a@x.com', app_metadata: { painel: true, papel: 'membro', ativo: true, kpis: ['consultas_total'] } }).kpis, ['consultas_total']);
     assert.strictEqual(usuarioDoAuth({ id: '1', email: 'a@x.com', app_metadata: { painel: true, papel: 'membro', ativo: true, kpis: 'x' } }).kpis, null);
 });
+test('kpis: null significa "usar o padrao" e e aceito em criar e atualizar', () => {
+    assert.deepStrictEqual(validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'atualizar', email: 'm@x.com', kpis: null }), { ok: true });
+    assert.deepStrictEqual(validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'criar', email: 'n2@x.com', nome: 'N2', papel: 'membro', senha: '1234567890', kpis: null }), { ok: true });
+});
 test('kpis invalido e rejeitado em criar e atualizar', () => {
     const r1 = validarAlteracaoUsuario(BASE, 'chefe@x.com', { tipo: 'criar', email: 'n@x.com', nome: 'N', papel: 'membro', senha: '1234567890', kpis: ['nao_existe'] });
     assert.deepStrictEqual(r1, { ok: false, erro: 'Lista de KPIs inválida.' });

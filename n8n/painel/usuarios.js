@@ -21,7 +21,7 @@ function validarAlteracaoUsuario(usuarios, atorEmail, pedido) {
     if (!ator || !ator.ativo || ator.papel !== 'super_admin') return falha('Apenas o super administrador pode gerenciar usuários.');
     const p = pedido || {};
     const email = String(p.email || '').trim().toLowerCase();
-    if (p.kpis !== undefined && !validarListaKpis(p.kpis)) return falha('Lista de KPIs inválida.');
+    if (p.kpis !== undefined && p.kpis !== null && !validarListaKpis(p.kpis)) return falha('Lista de KPIs inválida.');
 
     if (p.tipo === 'criar') {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return falha('E-mail inválido.');
