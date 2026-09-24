@@ -14,7 +14,8 @@ const ADAPTADORES = {
     'validar-copia': ['valores.js', 'pagamentos.js', 'eventos.js'],
     'montar-dashboard': ['dashboard.js', 'kpis.js'],
     'painel-api': ['kpis.js', 'usuarios.js'],
-    'conferir-pagamento': ['pagamentos.js']
+    'conferir-pagamento': ['pagamentos.js'],
+    'filtrar-conferencias': []
 };
 
 const CORPOS = {
@@ -87,23 +88,27 @@ return [{ json: { status: 200, corpo: { ok: true, dashboard: pedido.usuario && p
   periodo: d.periodo, planilhaUrl: pedido.planilhaUrl, usuario: pedido.usuario } } }];`,
     'painel-api': fs.readFileSync(path.join(__dirname, 'painel_api_corpo.js'), 'utf8'),
     'conferir-pagamento': `
-const SERVICE_KEY = '__SUPABASE_SERVICE_KEY__';
 const agora = new Date().toISOString();
-const linhas = $input.all().map(i => i.json).filter(l => l && l.id && l.cpf && l.proxima_conferencia && l.proxima_conferencia <= agora);
-const out = [];
-for (const l of linhas) {
-  const cpfFmt = String(l.cpf).replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, '$1.$2.$3-$4');
-  let cacheRow = null;
-  try {
-    const r = await this.helpers.httpRequest({ method: 'GET', json: true, timeout: 15000,
-      url: 'https://udvkjlnvcttzrhscsecg.supabase.co/rest/v1/alunos_cache?select=status_sponte,data_atualizacao,proximo_boleto&cpf=eq.' + encodeURIComponent(cpfFmt),
-      headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } });
-    cacheRow = Array.isArray(r) && r[0] ? r[0] : null;
-  } catch (e) { continue; } // Supabase fora: tenta na proxima hora, sem decidir
-  const d = decidirConferencia(l, cacheRow, agora);
-  out.push({ json: d.final ? { id: l.id, final: true, registro: d.registro } : { id: l.id, final: false, etapa: d.etapa, proxima_conferencia: d.proxima_conferencia } });
+const linhas = $('Filtrar Vencidas').all().map(i => i.json);
+const porIndice = {};
+for (const it of $('Buscar Cache').all()) {
+  const idx = it.pairedItem && typeof it.pairedItem.item === 'number' ? it.pairedItem.item : null;
+  if (idx === null) continue;
+  if (it.json && it.json.error) { porIndice[idx] = 'erro'; continue; }
+  if (it.json && it.json.cpf) porIndice[idx] = it.json;
 }
-return out;`
+const out = [];
+linhas.forEach((l, i) => {
+  if (porIndice[i] === 'erro') return; // Supabase falhou para essa linha: tenta na proxima hora, sem decidir
+  const d = decidirConferencia(l, porIndice[i] || null, agora);
+  out.push({ json: d.final ? { id: l.id, final: true, registro: d.registro } : { id: l.id, final: false, etapa: d.etapa, proxima_conferencia: d.proxima_conferencia } });
+});
+return out;`,
+    'filtrar-conferencias': `
+const agora = new Date().toISOString();
+return $input.all().map(i => i.json)
+  .filter(l => l && l.id && l.cpf && l.proxima_conferencia && l.proxima_conferencia <= agora)
+  .map(l => ({ json: l }));`
 };
 
 const no = process.argv[2];
