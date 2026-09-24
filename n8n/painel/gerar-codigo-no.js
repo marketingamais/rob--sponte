@@ -13,7 +13,8 @@ const ADAPTADORES = {
     'registrar-evento-front': ['valores.js', 'consulta_log.js', 'pagamentos.js', 'eventos.js'],
     'validar-copia': ['valores.js', 'pagamentos.js', 'eventos.js'],
     'montar-dashboard': ['dashboard.js', 'kpis.js'],
-    'painel-api': ['kpis.js', 'usuarios.js']
+    'painel-api': ['kpis.js', 'usuarios.js'],
+    'conferir-pagamento': ['pagamentos.js']
 };
 
 const CORPOS = {
@@ -92,7 +93,25 @@ const operacao = filtrarKpis({ erros_por_tela: d.errosPorTela, origem_respostas:
 return [{ json: { status: 200, corpo: { ok: true, dashboard: pedido.usuario && pedido.usuario.papel === 'super_admin' ? d : undefined, kpis: permitidos, dados: Object.assign({}, kpis, operacao),
   saude: permitidos.includes('saude_sistema') ? saude : null, ultimaIngestao: permitidos.includes('saude_sistema') ? u : null,
   periodo: d.periodo, planilhaUrl: pedido.planilhaUrl, usuario: pedido.usuario } } }];`,
-    'painel-api': fs.readFileSync(path.join(__dirname, 'painel_api_corpo.js'), 'utf8')
+    'painel-api': fs.readFileSync(path.join(__dirname, 'painel_api_corpo.js'), 'utf8'),
+    'conferir-pagamento': `
+const SERVICE_KEY = '__SUPABASE_SERVICE_KEY__';
+const agora = new Date().toISOString();
+const linhas = $input.all().map(i => i.json).filter(l => l && l.id && l.cpf && l.proxima_conferencia && l.proxima_conferencia <= agora);
+const out = [];
+for (const l of linhas) {
+  const cpfFmt = String(l.cpf).replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, '$1.$2.$3-$4');
+  let cacheRow = null;
+  try {
+    const r = await this.helpers.httpRequest({ method: 'GET', json: true, timeout: 15000,
+      url: 'https://udvkjlnvcttzrhscsecg.supabase.co/rest/v1/alunos_cache?select=status_sponte,data_atualizacao,proximo_boleto&cpf=eq.' + encodeURIComponent(cpfFmt),
+      headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } });
+    cacheRow = Array.isArray(r) && r[0] ? r[0] : null;
+  } catch (e) { continue; } // Supabase fora: tenta na proxima hora, sem decidir
+  const d = decidirConferencia(l, cacheRow, agora);
+  out.push({ json: d.final ? { id: l.id, final: true, registro: d.registro } : { id: l.id, final: false, etapa: d.etapa, proxima_conferencia: d.proxima_conferencia } });
+}
+return out;`
 };
 
 const no = process.argv[2];

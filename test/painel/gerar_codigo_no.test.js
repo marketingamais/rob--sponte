@@ -6,7 +6,7 @@ const path = require('path');
 const CLI = path.join(__dirname, '../../n8n/painel/gerar-codigo-no.js');
 const gerar = (no) => execFileSync(process.execPath, [CLI, no], { encoding: 'utf8' });
 
-for (const no of ['registrar-consulta', 'registrar-evento-front', 'montar-dashboard', 'painel-api', 'validar-copia']) {
+for (const no of ['registrar-consulta', 'registrar-evento-front', 'montar-dashboard', 'painel-api', 'validar-copia', 'conferir-pagamento']) {
     test(`gera codigo executavel para ${no}`, () => {
         const codigo = gerar(no);
         assert.ok(!/module\.exports/.test(codigo), 'nao pode ter module.exports');
@@ -59,4 +59,10 @@ test('painel-api tem as acoes de padrao de KPIs e grava kpis no app_metadata', (
     assert.match(codigo, /salvarConfig/);
     assert.match(codigo, /meta\.kpis|kpis: pedido\.kpis/);
     assert.match(codigo, /\$\('Webhook API'\)\.first\(\)\.json/);
+});
+
+test('conferir-pagamento decide e separa final de proxima etapa', () => {
+    const codigo = gerar('conferir-pagamento');
+    assert.match(codigo, /decidirConferencia\(/);
+    assert.match(codigo, /__SUPABASE_SERVICE_KEY__/);
 });
