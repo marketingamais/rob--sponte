@@ -26,7 +26,8 @@ app.post('/iniciar-exportacao', (req, res) => {
     }
 
     // Responde imediatamente
-    res.json({ status: 'Processo de exportação iniciado em background!', webhookUrl, cacheWebhookUrl });
+    // Nao devolve as URLs: a de cache tem um sufixo secreto
+    res.json({ status: 'Processo de exportação iniciado em background!' });
 
     // Roda o Puppeteer em segundo plano
     runWithRetries(webhookUrl, cacheWebhookUrl).catch(e => console.error('Erro geral no robô:', e));

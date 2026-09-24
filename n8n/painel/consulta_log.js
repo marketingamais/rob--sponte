@@ -11,7 +11,7 @@ const TELA_POR_RESULTADO = {
 
 const TELA_POR_CODE = {
     nao_encontrado: 'CPF não encontrado',
-    instabilidade: 'Sistema instável',
+    instabilidade: 'Sistema fora do ar',
     timeout_navegador: 'Sistema instável',
     sem_senha: 'Sem senha no portal',
     cpf_invalido: 'CPF inválido'
@@ -28,6 +28,11 @@ const MOTIVOS = {
         motivo: 'O robô ao vivo falhou ou demorou nas 5 tentativas e não havia cache',
         solucao: 'Tentar de novo em alguns minutos; ver "Saúde do sistema" no painel'
     },
+    instabilidade_cache_vencido: {
+        erro: 'Sistema fora do ar',
+        motivo: 'O dado salvo tem mais de 27 h (o export da madrugada falhou) e a busca ao vivo na Sponte também falhou',
+        solucao: 'Ver "Último export" no painel e rodar o export de novo; a família deve tentar mais tarde'
+    },
     instabilidade_api_sponte: {
         erro: 'API da Sponte indisponível',
         motivo: 'A consulta de alunos na Sponte retornou erro',
@@ -40,7 +45,7 @@ const MOTIVOS = {
     },
     timeout_navegador: {
         erro: 'Tempo esgotado no site',
-        motivo: 'O site esperou 150 s sem resposta, ou a rede falhou',
+        motivo: 'O site esperou 210 s sem resposta, ou a rede falhou',
         solucao: 'Tentar de novo; se repetir, ver "Saúde do sistema"'
     },
     cpf_invalido: {
@@ -95,7 +100,10 @@ function mapearStatus(r) {
 }
 
 function motivoESolucao(code, detalhe) {
-    if (code === 'instabilidade') return MOTIVOS[detalhe === 'api_sponte' ? 'instabilidade_api_sponte' : 'instabilidade_robo'];
+    if (code === 'instabilidade') {
+        if (detalhe === 'cache_vencido') return MOTIVOS.instabilidade_cache_vencido;
+        return MOTIVOS[detalhe === 'api_sponte' ? 'instabilidade_api_sponte' : 'instabilidade_robo'];
+    }
     return MOTIVOS[code] || MOTIVOS.desconhecido;
 }
 

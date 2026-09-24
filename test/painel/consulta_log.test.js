@@ -38,7 +38,7 @@ test('formato legado sem alunos usa proximoBoleto/parcelas', () => {
 
 test('erros por code', () => {
     const casos = [
-        ['nao_encontrado', 'CPF não encontrado'], ['instabilidade', 'Sistema instável'],
+        ['nao_encontrado', 'CPF não encontrado'], ['instabilidade', 'Sistema fora do ar'],
         ['timeout_navegador', 'Sistema instável'], ['sem_senha', 'Sem senha no portal'],
         ['cpf_invalido', 'CPF inválido'], ['qualquer', 'Erro desconhecido'], [undefined, 'Erro desconhecido']
     ];
@@ -64,6 +64,10 @@ test('motivoESolucao cobre todos os codes e detalhe de instabilidade', () => {
     assert.match(motivoESolucao('instabilidade', 'api_sponte').erro, /API da Sponte/);
     assert.match(motivoESolucao('instabilidade', 'robo').erro, /Robô/);
     assert.match(motivoESolucao('instabilidade').erro, /Robô/);
+    // dado salvo vencido (export falhou) + Sponte fora: o site diz "fora do ar" em vez de mostrar dado antigo
+    assert.match(motivoESolucao('instabilidade', 'cache_vencido').erro, /fora do ar/);
+    assert.match(motivoESolucao('instabilidade', 'cache_vencido').solucao, /export/i);
+    assert.match(motivoESolucao('timeout_navegador').motivo, /210 s/);
 });
 
 test('linhaPlanilhaErro formata data em SP e CPF', () => {

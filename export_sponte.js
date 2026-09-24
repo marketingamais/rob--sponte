@@ -198,7 +198,7 @@ async function baixarRelatorio() {
                 const found = await frame.evaluate(() => {
                     const textContent = document.body ? document.body.innerText.toUpperCase() : '';
                     return textContent.includes('EXPORTAR') || textContent.includes('VISUALIZAR') || textContent.includes('VENCIMENTO');
-                });
+                }).catch(() => false); // frame recarregado pela Sponte (detached): ignora e segue
                 if (found) {
                     isScreenReady = true;
                     break;
@@ -315,7 +315,7 @@ async function baixarRelatorio() {
                         dateInputs[1].value = end;
                     }
                 }
-            }, startDateStr, endDateStr);
+            }, startDateStr, endDateStr).catch(() => {}); // frame recarregado pela Sponte (detached): ignora e segue
         }
 
         console.log("Configurando exportação para Excel...");
@@ -421,17 +421,17 @@ async function baixarRelatorio() {
         let btnHandle = null;
         for (const frame of page.frames()) {
             // Busca todos os elementos clicáveis que parecem botões, incluindo inputs de imagem e divs/spans
-            const elements = await frame.$$('input[type="button"], input[type="submit"], input[type="image"], button, a, div[class*="btn"], span[class*="btn"]');
+            const elements = await frame.$$('input[type="button"], input[type="submit"], input[type="image"], button, a, div[class*="btn"], span[class*="btn"]').catch(() => []); // frame detached
             for (const el of elements) {
                 // Checa textos e atributos de imagem (alt/title)
-                const text = await frame.evaluate(x => (x.value || x.innerText || x.textContent || x.title || x.alt || '').toUpperCase(), el);
-                
+                const text = await frame.evaluate(x => (x.value || x.innerText || x.textContent || x.title || x.alt || '').toUpperCase(), el).catch(() => '');
+
                 // Medida de segurança: Garante que o botão tem tamanho na tela e não está invisível
                 const isVisible = await frame.evaluate(x => {
                     const rect = x.getBoundingClientRect();
                     const style = window.getComputedStyle(x);
                     return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-                }, el);
+                }, el).catch(() => false);
 
                 if (isVisible && (text.includes('VISUALIZAR') || text.includes('EMITIR') || text.includes('GERAR') || text.includes('EXPORTAR'))) {
                     btnHandle = el;
@@ -484,16 +484,23 @@ async function exportarRelatorio(webhookUrl, cacheWebhookUrl) {
         return { success: true, message: 'Exportação concluída!', ...r };
     } catch (e) {
         console.error('Erro durante a automação:', e);
-        if (webhookUrl) {
-            try { await axios.post(webhookUrl, { error: true, message: e.toString() }); } catch (err) {}
-        }
         throw e;
     }
 }
 
+async function notificarErro(webhookUrl, e) {
+    if (!webhookUrl) return;
+    try { await axios.post(webhookUrl, { error: true, message: e.toString() }); } catch (err) {}
+}
+
 let exportEmAndamento = false;
 
-async function runWithRetries(webhookUrl, cacheWebhookUrl) {
+// Avisa o n8n do erro so depois da ultima tentativa: uma falha intermitente
+// (ex.: frame da Sponte recarregado) que passa na tentativa seguinte nao vira alarme.
+async function runWithRetries(webhookUrl, cacheWebhookUrl, deps = {}) {
+    const exportar = deps.exportar || exportarRelatorio;
+    const avisar = deps.notificarErro || notificarErro;
+    const esperar = deps.esperar || (ms => new Promise(r => setTimeout(r, ms)));
     if (exportEmAndamento) {
         console.log('Export ja em andamento - disparo duplicado ignorado (evita concorrencia de browsers).');
         return;
@@ -511,17 +518,20 @@ async function runWithRetries(webhookUrl, cacheWebhookUrl) {
         let retries = 0;
         while (retries < 3) {
             try {
-                await exportarRelatorio(webhookUrl, cacheWebhookUrl);
+                await exportar(webhookUrl, cacheWebhookUrl);
                 return;
             } catch(e) {
                 retries++;
                 console.log(`Tentativa ${retries} falhou.`);
                 if (e && e.naoReexportar) {
                     console.log('Erro nao-reexportavel (ex.: lote de cache rejeitado) - nao repetindo o export.');
+                    await avisar(webhookUrl, e);
                     return;
                 }
                 if (retries < 3) {
-                    await new Promise(r => setTimeout(r, 10000));
+                    await esperar(10000);
+                } else {
+                    await avisar(webhookUrl, e);
                 }
             }
         }
